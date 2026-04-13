@@ -35,9 +35,9 @@ export default async function PendingPage() {
           신청이 접수되었습니다
         </h1>
         <p className="text-sm text-[#5F5B53] mb-6 leading-relaxed">
-          관리자 승인 후 서비스를 이용하실 수 있습니다.
+          관리자 검토 후 서비스를 이용하실 수 있습니다.
           <br />
-          승인 완료 시 안내 드리겠습니다.
+          처리 완료 시 안내 드리겠습니다.
         </p>
 
         <div className="bg-[#F7F7F5] rounded-[10px] p-4 mb-6 text-left space-y-2">
@@ -55,7 +55,7 @@ export default async function PendingPage() {
           )}
           <div className="flex justify-between text-sm">
             <span className="text-[#8A867D]">상태</span>
-            <span className="text-amber-700 font-medium">승인 대기 중</span>
+            <span className="text-amber-700 font-medium">검토 대기 중</span>
           </div>
         </div>
 

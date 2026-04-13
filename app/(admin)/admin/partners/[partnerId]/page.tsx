@@ -33,11 +33,23 @@ export default function PartnerDetailPage() {
 
   useEffect(() => { load() }, [partnerId])
 
-  const handleAction = async (action: "approve" | "deactivate") => {
+  const handleSuspend = async (days: 1 | 3 | 7 | 30) => {
     setActing(true)
-    await fetch(`/api/partners/${partnerId}/${action}`, { method: "POST" })
+    await fetch(`/api/partners/${partnerId}/suspend`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ days }),
+    })
     load()
     setActing(false)
+  }
+
+  const handleDelete = async () => {
+    if (!confirm("정말 계정을 삭제할까요? 삭제 후에도 재가입은 가능합니다.")) return
+    setActing(true)
+    await fetch(`/api/partners/${partnerId}/delete`, { method: "DELETE" })
+    setActing(false)
+    window.location.href = "/admin/partners"
   }
 
   if (loading) return <div className="text-sm text-[#8A867D]">불러오는 중...</div>
@@ -49,13 +61,18 @@ export default function PartnerDetailPage() {
     <div className="space-y-5 max-w-3xl">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-semibold text-[#191917]">{user?.name ?? "파트너"} 상세</h1>
-        <div className="flex gap-2">
-          {data.status === "pending" && (
-            <Button onClick={() => handleAction("approve")} disabled={acting}>승인</Button>
-          )}
-          {data.status === "active" && (
-            <Button onClick={() => handleAction("deactivate")} disabled={acting} variant="danger">비활성 처리</Button>
-          )}
+        <div className="flex gap-2 flex-wrap">
+          {[1, 3, 7, 30].map((days) => (
+            <Button
+              key={days}
+              onClick={() => handleSuspend(days as 1 | 3 | 7 | 30)}
+              disabled={acting}
+              variant="outline"
+            >
+              {days}일 정지
+            </Button>
+          ))}
+          <Button onClick={handleDelete} disabled={acting} variant="danger">계정 삭제</Button>
         </div>
       </div>
 
@@ -72,7 +89,6 @@ export default function PartnerDetailPage() {
               { label: "활동 지역", value: data.activity_region ?? "-" },
               { label: "활동 유형", value: data.activity_type ?? "-" },
               { label: "유입 경로", value: data.acquisition_channel ?? "-" },
-              { label: "승인일", value: data.approved_at ? new Date(data.approved_at).toLocaleDateString("ko-KR") : "-" },
               { label: "신청일", value: new Date(data.created_at).toLocaleDateString("ko-KR") },
             ].map(({ label, value }) => (
               <div key={label}>

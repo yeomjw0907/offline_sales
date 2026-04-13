@@ -13,7 +13,7 @@ export default async function PartnerLayout({
   const supabase = createClient("service")
   const { data: profile } = await supabase
     .from("partner_profiles")
-    .select("id, status")
+    .select("id, status, deactivated_at")
     .eq("user_id", session.user.id)
     .single()
 
@@ -25,6 +25,21 @@ export default async function PartnerLayout({
 
   if (profile.status === "pending") {
     redirect("/partner/pending")
+  }
+
+  if (profile.status === "inactive") {
+    if (profile.deactivated_at && new Date(profile.deactivated_at) <= new Date()) {
+      await supabase
+        .from("partner_profiles")
+        .update({
+          status: "active",
+          deactivated_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", profile.id)
+    } else {
+      redirect("/partner/suspended")
+    }
   }
 
   return (
