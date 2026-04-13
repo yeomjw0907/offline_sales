@@ -3,6 +3,9 @@ import Kakao from "next-auth/providers/kakao"
 import { createClient } from "@/lib/db/client"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Vercel 등 배포 환경에서 호스트/시크릿 추론 실패 시 CSRF·providers가 500이 되는 것을 방지
+  trustHost: true,
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   providers: [
     Kakao({
       clientId: process.env.KAKAO_CLIENT_ID!,
