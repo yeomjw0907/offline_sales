@@ -27,7 +27,7 @@ export default async function AdminDashboardPage() {
     supabase.from("settlements").select("net_amount").eq("status", "scheduled"),
     supabase
       .from("partner_profiles")
-      .select("id, status, activity_region, created_at, users(name, email)")
+      .select("id, user_id, status, activity_region, created_at")
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(5),
@@ -37,6 +37,12 @@ export default async function AdminDashboardPage() {
       .order("created_at", { ascending: false })
       .limit(5),
   ])
+
+  const pendingUserIds = Array.from(new Set((pendingList ?? []).map((p) => p.user_id).filter(Boolean)))
+  const { data: pendingUsers } = pendingUserIds.length
+    ? await supabase.from("users").select("id, name, email").in("id", pendingUserIds)
+    : { data: [] as Array<{ id: string; name: string | null; email: string | null }> }
+  const pendingUserMap = new Map((pendingUsers ?? []).map((u) => [u.id, u]))
 
   const scheduledTotal = scheduledSettlements?.reduce((s, r) => s + r.net_amount, 0) ?? 0
 
@@ -79,7 +85,7 @@ export default async function AdminDashboardPage() {
               <table className="w-full text-sm">
                 <tbody className="divide-y divide-[#E9E7E1]">
                   {pendingList?.map((p) => {
-                    const user = Array.isArray(p.users) ? p.users[0] : p.users
+                    const user = p.user_id ? pendingUserMap.get(p.user_id) : undefined
                     return (
                       <tr key={p.id} className="hover:bg-[#F7F7F5]">
                         <td className="py-2.5">

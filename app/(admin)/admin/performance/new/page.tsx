@@ -1,11 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+interface PartnerOption {
+  id: string
+  referral_code: string
+  name: string | null
+  email: string | null
+}
 
 export default function NewPerformancePage() {
   const router = useRouter()
@@ -17,6 +24,15 @@ export default function NewPerformancePage() {
   const [duplicate, setDuplicate] = useState<boolean>(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [partners, setPartners] = useState<PartnerOption[]>([])
+  const [selectedPartnerId, setSelectedPartnerId] = useState("")
+
+  useEffect(() => {
+    fetch("/api/partners/lookup?list=1")
+      .then((res) => (res.ok ? res.json() : { data: [] }))
+      .then((data) => setPartners(Array.isArray(data.data) ? data.data : []))
+      .catch(() => setPartners([]))
+  }, [])
 
   const handleCodeBlur = async () => {
     if (!form.referral_code) return
@@ -89,6 +105,30 @@ export default function NewPerformancePage() {
             <div className="space-y-1.5">
               <Label htmlFor="region">지역 *</Label>
               <Input id="region" value={form.region} onChange={e => setForm(f => ({ ...f, region: e.target.value }))} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="partner_select">파트너 선택 (드롭다운)</Label>
+              <select
+                id="partner_select"
+                value={selectedPartnerId}
+                onChange={(e) => {
+                  const id = e.target.value
+                  setSelectedPartnerId(id)
+                  const selected = partners.find((p) => p.id === id)
+                  if (selected?.referral_code) {
+                    setForm((f) => ({ ...f, referral_code: selected.referral_code }))
+                    setPartnerName(selected.name ?? "이름 없음")
+                  }
+                }}
+                className="h-10 w-full rounded-[10px] border border-[#DCD9D1] bg-[#FCFCFB] px-3 py-2 text-sm text-[#191917] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#191917] focus:ring-offset-2 focus:border-[#191917]"
+              >
+                <option value="">파트너를 선택해 자동 입력</option>
+                {partners.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {(p.name ?? "이름 없음")} ({p.referral_code})
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="referral_code">추천인 코드 *</Label>

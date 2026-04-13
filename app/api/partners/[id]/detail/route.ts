@@ -11,17 +11,36 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params
   const supabase = createClient("service")
 
-  const { data, error } = await supabase
+  const { data: profile, error } = await supabase
     .from("partner_profiles")
-    .select(`
-      *,
-      users(name, email, phone),
-      merchant_leads(id, store_name, region, pilot_started_at, status),
-      settlements(id, settlement_month, total_cases, net_amount, status)
-    `)
+    .select("*")
     .eq("id", id)
     .single()
 
-  if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  return NextResponse.json(data)
+  if (error || !profile) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+  const [{ data: user }, { data: leads }, { data: settlements }] = await Promise.all([
+    supabase
+      .from("users")
+      .select("name, email, phone")
+      .eq("id", profile.user_id)
+      .maybeSingle(),
+    supabase
+      .from("merchant_leads")
+      .select("id, store_name, region, pilot_started_at, status")
+      .eq("partner_profile_id", profile.id)
+      .order("pilot_started_at", { ascending: false }),
+    supabase
+      .from("settlements")
+      .select("id, settlement_month, total_cases, net_amount, status")
+      .eq("partner_profile_id", profile.id)
+      .order("settlement_month", { ascending: false }),
+  ])
+
+  return NextResponse.json({
+    ...profile,
+    users: user ?? null,
+    merchant_leads: leads ?? [],
+    settlements: settlements ?? [],
+  })
 }

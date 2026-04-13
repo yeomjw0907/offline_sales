@@ -20,6 +20,8 @@ export default function MaterialsPage() {
   const [materials, setMaterials] = useState<Material[]>([])
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ title: "", type: "link" as Material["type"], url: "", description: "", sort_order: "0" })
+  const [file, setFile] = useState<File | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   const load = () => {
@@ -45,15 +47,52 @@ export default function MaterialsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError(null)
     setSaving(true)
-    await fetch("/api/materials", {
+
+    let nextUrl = form.url
+    if (form.type === "file") {
+      if (!file) {
+        setFormError("파일 유형은 업로드할 파일을 선택해 주세요.")
+        setSaving(false)
+        return
+      }
+
+      const formData = new FormData()
+      formData.append("file", file)
+      const uploadRes = await fetch("/api/materials/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!uploadRes.ok) {
+        const uploadData = await uploadRes.json().catch(() => ({}))
+        setFormError(uploadData.error ?? "파일 업로드 중 오류가 발생했습니다.")
+        setSaving(false)
+        return
+      }
+
+      const uploadData = await uploadRes.json()
+      nextUrl = uploadData.url
+    }
+
+    const res = await fetch("/api/materials", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, sort_order: parseInt(form.sort_order) }),
+      body: JSON.stringify({ ...form, url: nextUrl, sort_order: parseInt(form.sort_order) }),
     })
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setFormError(data.error ?? "자료 저장 중 오류가 발생했습니다.")
+      setSaving(false)
+      return
+    }
+
     setSaving(false)
     setShowForm(false)
     setForm({ title: "", type: "link", url: "", description: "", sort_order: "0" })
+    setFile(null)
     load()
   }
 
@@ -71,6 +110,11 @@ export default function MaterialsPage() {
           <CardHeader><CardTitle>새 자료 추가</CardTitle></CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
+              {formError && (
+                <div className="bg-red-50 border border-red-200 rounded-[8px] p-3 text-sm text-[#C94C4C]">
+                  {formError}
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label>제목 *</Label>
                 <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
@@ -84,10 +128,25 @@ export default function MaterialsPage() {
                   <option value="note">노트</option>
                 </select>
               </div>
-              <div className="space-y-1.5">
-                <Label>URL</Label>
-                <Input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://" />
-              </div>
+              {form.type === "file" ? (
+                <div className="space-y-1.5">
+                  <Label>파일 업로드 *</Label>
+                  <Input
+                    type="file"
+                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                    required
+                  />
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label>{form.type === "note" ? "노트 내용" : "URL"}</Label>
+                  <Input
+                    value={form.url}
+                    onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
+                    placeholder={form.type === "note" ? "노트 텍스트를 입력하세요" : "https://"}
+                  />
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label>설명</Label>
                 <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} />

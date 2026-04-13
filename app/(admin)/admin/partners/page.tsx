@@ -22,7 +22,7 @@ export default async function PartnersPage({ searchParams }: Props) {
 
   let query = supabase
     .from("partner_profiles")
-    .select("id, status, referral_code, activity_region, approved_at, created_at, users(name, email)", { count: "exact" })
+    .select("id, user_id, status, referral_code, activity_region, approved_at, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(from, to)
 
@@ -34,6 +34,14 @@ export default async function PartnersPage({ searchParams }: Props) {
   }
 
   const { data: partners, count } = await query
+  const userIds = Array.from(new Set((partners ?? []).map((p) => p.user_id).filter(Boolean)))
+  const { data: users } = userIds.length
+    ? await supabase
+        .from("users")
+        .select("id, name, email")
+        .in("id", userIds)
+    : { data: [] as Array<{ id: string; name: string | null; email: string | null }> }
+  const userMap = new Map((users ?? []).map((u) => [u.id, u]))
   const totalPages = Math.ceil((count ?? 0) / pageSize)
 
   const statuses: { value: string; label: string }[] = [
@@ -88,7 +96,7 @@ export default async function PartnersPage({ searchParams }: Props) {
               </thead>
               <tbody className="divide-y divide-[#E9E7E1]">
                 {partners?.map((p) => {
-                  const user = Array.isArray(p.users) ? p.users[0] : p.users
+                  const user = p.user_id ? userMap.get(p.user_id) : undefined
                   return (
                     <tr key={p.id} className="hover:bg-[#F7F7F5]">
                       <td className="px-4 py-3 font-medium text-[#191917]">

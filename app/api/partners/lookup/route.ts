@@ -9,18 +9,55 @@ export async function GET(req: NextRequest) {
   }
 
   const code = req.nextUrl.searchParams.get("code")
-  if (!code) return NextResponse.json({ error: "code required" }, { status: 400 })
+  const list = req.nextUrl.searchParams.get("list")
 
   const supabase = createClient("service")
+  if (list === "1") {
+    const { data: partners } = await supabase
+      .from("partner_profiles")
+      .select("id, user_id, referral_code")
+      .eq("status", "active")
+      .not("referral_code", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(200)
+
+    const userIds = Array.from(new Set((partners ?? []).map((p) => p.user_id).filter(Boolean)))
+    const { data: users } = userIds.length
+      ? await supabase.from("users").select("id, name, email").in("id", userIds)
+      : { data: [] as Array<{ id: string; name: string | null; email: string | null }> }
+    const userMap = new Map((users ?? []).map((u) => [u.id, u]))
+
+    const items = (partners ?? [])
+      .filter((p) => p.referral_code)
+      .map((p) => {
+        const user = userMap.get(p.user_id)
+        return {
+          id: p.id,
+          referral_code: p.referral_code,
+          name: user?.name ?? null,
+          email: user?.email ?? null,
+        }
+      })
+
+    return NextResponse.json({ data: items })
+  }
+
+  if (!code) return NextResponse.json({ error: "code required" }, { status: 400 })
+
   const { data } = await supabase
     .from("partner_profiles")
-    .select("id, users(name)")
+    .select("id, user_id, referral_code")
     .eq("referral_code", code.toUpperCase())
     .eq("status", "active")
     .maybeSingle()
 
   if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  const user = Array.isArray(data.users) ? data.users[0] : data.users
-  return NextResponse.json({ id: data.id, name: (user as { name?: string } | null)?.name ?? null })
+  const { data: user } = await supabase
+    .from("users")
+    .select("name")
+    .eq("id", data.user_id)
+    .maybeSingle()
+
+  return NextResponse.json({ id: data.id, name: user?.name ?? null })
 }
