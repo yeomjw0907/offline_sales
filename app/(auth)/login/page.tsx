@@ -1,39 +1,11 @@
 "use client"
 
-import { FormEvent, useState } from "react"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [adminEmail, setAdminEmail] = useState("")
-  const [adminPassword, setAdminPassword] = useState("")
-  const [adminError, setAdminError] = useState<string | null>(null)
-  const [adminSubmitting, setAdminSubmitting] = useState(false)
-
-  async function handleAdminLogin(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setAdminError(null)
-    setAdminSubmitting(true)
-
-    const result = await signIn("admin-credentials", {
-      email: adminEmail,
-      password: adminPassword,
-      redirect: false,
-      callbackUrl: "/admin",
-    })
-
-    setAdminSubmitting(false)
-
-    if (!result || result.error) {
-      setAdminError("이메일 또는 비밀번호를 확인해 주세요.")
-      return
-    }
-
-    router.push(result.url ?? "/admin")
-  }
 
   return (
     <main className="min-h-screen bg-[#F7F7F5] flex items-center justify-center px-4">
@@ -51,10 +23,10 @@ export default function LoginPage() {
         </div>
         <div className="text-center">
           <h1 className="text-2xl font-semibold text-[#191917] mb-1">
-            로그인
+            파트너 로그인
           </h1>
           <p className="text-sm text-[#5F5B53]">
-            파트너는 카카오 로그인, 관리자는 이메일 로그인으로 접속하세요.
+            카카오 계정으로 간편하게 시작하세요
           </p>
         </div>
 
@@ -67,34 +39,6 @@ export default function LoginPage() {
           </svg>
           카카오로 로그인
         </button>
-
-        <div className="w-full h-px bg-[#E9E7E1]" />
-
-        <form onSubmit={handleAdminLogin} className="w-full space-y-3">
-          <p className="text-sm font-medium text-[#191917]">관리자 로그인</p>
-          <Input
-            type="email"
-            value={adminEmail}
-            onChange={(e) => setAdminEmail(e.target.value)}
-            placeholder="admin@email.com"
-            required
-          />
-          <Input
-            type="password"
-            value={adminPassword}
-            onChange={(e) => setAdminPassword(e.target.value)}
-            placeholder="비밀번호"
-            required
-          />
-          {adminError && (
-            <p className="text-xs text-red-600 bg-red-50 rounded-[10px] px-3 py-2">
-              {adminError}
-            </p>
-          )}
-          <Button type="submit" className="w-full" disabled={adminSubmitting}>
-            {adminSubmitting ? "로그인 중..." : "관리자 로그인"}
-          </Button>
-        </form>
 
         <p className="text-xs text-[#8A867D] text-center leading-relaxed">
           로그인하면{" "}

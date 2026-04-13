@@ -3,6 +3,32 @@ import Kakao from "next-auth/providers/kakao"
 import Credentials from "next-auth/providers/credentials"
 import { createClient } from "@/lib/db/client"
 
+function getAdminCredentialEntries() {
+  const multi = String(process.env.ADMIN_LOGIN_ACCOUNTS ?? "").trim()
+  const parsed = multi
+    .split(/[,\n;]/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const separator = entry.indexOf(":")
+      if (separator <= 0) return null
+      const email = entry.slice(0, separator).trim().toLowerCase()
+      const password = entry.slice(separator + 1)
+      if (!email || !password) return null
+      return { email, password }
+    })
+    .filter((entry): entry is { email: string; password: string } => entry !== null)
+
+  if (parsed.length > 0) return parsed
+
+  const singleEmail = String(process.env.ADMIN_LOGIN_EMAIL ?? "")
+    .trim()
+    .toLowerCase()
+  const singlePassword = String(process.env.ADMIN_LOGIN_PASSWORD ?? "")
+  if (!singleEmail || !singlePassword) return []
+  return [{ email: singleEmail, password: singlePassword }]
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // Vercel 등 배포 환경에서 호스트/시크릿 추론 실패 시 CSRF·providers가 500이 되는 것을 방지
   trustHost: true,
@@ -22,18 +48,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorize(credentials) {
         const email = String(credentials?.email ?? "").trim().toLowerCase()
         const password = String(credentials?.password ?? "")
-        const adminEmail = String(process.env.ADMIN_LOGIN_EMAIL ?? "")
-          .trim()
-          .toLowerCase()
-        const adminPassword = String(process.env.ADMIN_LOGIN_PASSWORD ?? "")
+        const adminEntries = getAdminCredentialEntries()
+        const matchedAdmin = adminEntries.find((admin) => admin.email === email)
 
-        if (!adminEmail || !adminPassword) return null
-        if (email !== adminEmail || password !== adminPassword) return null
+        if (!matchedAdmin) return null
+        if (password !== matchedAdmin.password) return null
 
         return {
-          id: "admin-local",
+          id: `admin-local:${matchedAdmin.email}`,
           name: "관리자",
-          email: adminEmail,
+          email: matchedAdmin.email,
           role: "admin",
         }
       },

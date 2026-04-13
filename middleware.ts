@@ -8,6 +8,7 @@ export default auth((req) => {
   const isPublic =
     pathname === "/" ||
     pathname === "/login" ||
+    pathname === "/admin/login" ||
     pathname === "/privacy" ||
     pathname === "/terms" ||
     pathname.startsWith("/api/auth") ||
@@ -17,7 +18,8 @@ export default auth((req) => {
   if (isPublic) return NextResponse.next()
 
   if (!session) {
-    return NextResponse.redirect(new URL("/login", req.url))
+    const loginPath = pathname.startsWith("/admin") ? "/admin/login" : "/login"
+    return NextResponse.redirect(new URL(loginPath, req.url))
   }
 
   const role = session.user.role
