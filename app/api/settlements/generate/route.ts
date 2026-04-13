@@ -4,6 +4,11 @@ import { createClient } from "@/lib/db/client"
 import { calculateSettlement } from "@/lib/settlements/calculate"
 import { logAdminAction } from "@/lib/db/log"
 
+function isUuid(value: string | null | undefined) {
+  if (!value) return false
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -37,6 +42,18 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createClient("service")
+  let adminUserId: string | null = isUuid(session.user.id) ? session.user.id : null
+
+  if (!adminUserId && session.user.email) {
+    const { data: adminUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", session.user.email)
+      .in("role", ["admin", "super_admin"])
+      .maybeSingle()
+    adminUserId = adminUser?.id ?? null
+  }
+
   const monthStart = `${month}-01`
   const [year, mon] = month.split("-").map(Number)
   const nextMonth = mon === 12 ? `${year + 1}-01-01` : `${year}-${String(mon + 1).padStart(2, "0")}-01`
@@ -110,16 +127,22 @@ export async function POST(req: NextRequest) {
     // Update merchant_leads status to settlement_ready
     await supabase
       .from("merchant_leads")
-      .update({ status: "settlement_ready", updated_at: new Date().toISOString(), updated_by: session.user.id })
+      .update({
+        status: "settlement_ready",
+        updated_at: new Date().toISOString(),
+        updated_by: adminUserId,
+      })
       .in("id", leads.map((l) => l.id))
 
-    await logAdminAction({
-      adminUserId: session.user.id,
-      actionType: "generate_settlement",
-      targetType: "settlement",
-      targetId: settlement.id,
-      afterData: { partner_profile_id: partner.id, month, total_cases: calc.totalCases },
-    })
+    if (adminUserId) {
+      await logAdminAction({
+        adminUserId,
+        actionType: "generate_settlement",
+        targetType: "settlement",
+        targetId: settlement.id,
+        afterData: { partner_profile_id: partner.id, month, total_cases: calc.totalCases },
+      })
+    }
 
     created++
   }
