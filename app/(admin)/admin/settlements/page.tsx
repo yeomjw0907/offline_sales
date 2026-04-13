@@ -5,6 +5,7 @@ import { SettlementStatusBadge } from "@/components/shared/StatusBadge"
 import { formatKRW, getCurrentSettlementMonth } from "@/lib/settlements/calculate"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import GenerateSettlementButton from "./GenerateSettlementButton"
 
 interface Props {
   searchParams: Promise<{ month?: string; status?: string }>
@@ -31,12 +32,7 @@ export default async function SettlementsPage({ searchParams }: Props) {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-semibold text-[#191917]">정산 관리</h1>
-        <form action="/api/settlements/generate" method="POST" className="flex gap-2">
-          <input type="hidden" name="month" value={currentMonth} />
-          <Button type="submit" variant="outline">
-            {currentMonth} 정산 생성
-          </Button>
-        </form>
+        <GenerateSettlementButton month={currentMonth} />
       </div>
 
       <form className="flex flex-wrap gap-2">

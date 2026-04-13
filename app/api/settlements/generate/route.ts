@@ -11,8 +11,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  const body = await req.json()
-  const { month, partnerProfileId } = body as { month: string; partnerProfileId?: string }
+  const contentType = req.headers.get("content-type") ?? ""
+  let month = ""
+  let partnerProfileId: string | undefined
+
+  if (contentType.includes("application/json")) {
+    const body = (await req.json()) as { month?: string; partnerProfileId?: string }
+    month = String(body.month ?? "")
+    partnerProfileId = body.partnerProfileId
+  } else if (contentType.includes("application/x-www-form-urlencoded")) {
+    const text = await req.text()
+    const params = new URLSearchParams(text)
+    month = String(params.get("month") ?? "")
+    const pid = params.get("partnerProfileId")
+    partnerProfileId = pid ?? undefined
+  } else {
+    const form = await req.formData()
+    month = String(form.get("month") ?? "")
+    const pid = form.get("partnerProfileId")
+    partnerProfileId = pid ? String(pid) : undefined
+  }
 
   if (!month || !/^\d{4}-\d{2}$/.test(month)) {
     return NextResponse.json({ error: "Invalid month format. Use YYYY-MM" }, { status: 400 })

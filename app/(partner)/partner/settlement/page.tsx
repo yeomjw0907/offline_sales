@@ -29,7 +29,7 @@ export default async function SettlementPage() {
           .select("bank_name, account_holder_name, account_number_encrypted")
           .eq("partner_profile_id", profile.id)
           .eq("is_active", true)
-          .single()
+          .maybeSingle()
       : Promise.resolve({ data: null }),
   ])
 

@@ -29,7 +29,7 @@ export default async function ProfilePage() {
         .select("bank_name, account_holder_name, account_number_encrypted")
         .eq("partner_profile_id", profile.id)
         .eq("is_active", true)
-        .single()
+        .maybeSingle()
     : { data: null }
 
   function maskAccount(encrypted: string): string {

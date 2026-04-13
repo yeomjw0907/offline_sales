@@ -7,7 +7,8 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
-  const { bank_name, account_number, account_holder_name } = body
+  const { bank_name, account_holder_name } = body
+  const account_number = String(body.account_number ?? "").replace(/\D/g, "")
 
   if (!bank_name || !account_number || !account_holder_name) {
     return NextResponse.json({ error: "필수 항목을 모두 입력해주세요." }, { status: 400 })

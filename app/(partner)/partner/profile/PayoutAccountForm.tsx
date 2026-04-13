@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,6 +11,7 @@ interface PayoutAccountFormProps {
 }
 
 export default function PayoutAccountForm({ hasExisting }: PayoutAccountFormProps) {
+  const router = useRouter()
   const [open, setOpen] = useState(!hasExisting)
   const [form, setForm] = useState({
     bank_name: "",
@@ -30,16 +32,27 @@ export default function PayoutAccountForm({ hasExisting }: PayoutAccountFormProp
     setMessage(null)
 
     try {
+      const payload = {
+        ...form,
+        account_number: form.account_number.replace(/\D/g, ""),
+      }
+      if (!payload.account_number) {
+        setMessage({ type: "error", text: "계좌번호를 입력해 주세요." })
+        setSaving(false)
+        return
+      }
+
       const res = await fetch("/api/partners/payout-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         setMessage({ type: "error", text: data.error ?? "저장에 실패했습니다." })
       } else {
+        await router.refresh()
         setMessage({ type: "success", text: "계좌가 등록되었습니다." })
         setOpen(false)
         setForm({ bank_name: "", account_holder_name: "", account_number: "" })

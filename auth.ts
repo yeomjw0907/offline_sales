@@ -45,7 +45,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      authorize(credentials) {
+      async authorize(credentials) {
         const email = String(credentials?.email ?? "").trim().toLowerCase()
         const password = String(credentials?.password ?? "")
         const adminEntries = getAdminCredentialEntries()
@@ -54,11 +54,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!matchedAdmin) return null
         if (password !== matchedAdmin.password) return null
 
+        const supabase = createClient("service")
+        const { data: dbUser, error } = await supabase
+          .from("users")
+          .select("id, role, name, email")
+          .eq("email", matchedAdmin.email)
+          .maybeSingle()
+
+        if (error || !dbUser) {
+          console.error("[auth] admin login: user not found for email", matchedAdmin.email)
+          return null
+        }
+        if (dbUser.role !== "admin" && dbUser.role !== "super_admin") {
+          console.error("[auth] admin login: user is not admin", matchedAdmin.email)
+          return null
+        }
+
         return {
-          id: `admin-local:${matchedAdmin.email}`,
-          name: "관리자",
-          email: matchedAdmin.email,
-          role: "admin",
+          id: dbUser.id,
+          name: dbUser.name ?? "관리자",
+          email: dbUser.email ?? matchedAdmin.email,
+          role: dbUser.role,
         }
       },
     }),
@@ -94,9 +110,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
     async jwt({ token, account, profile, user }) {
       if (account?.provider === "admin-credentials") {
-        token.role = "admin"
+        const adminUser = user as { id?: string; role?: "admin" | "super_admin" } | undefined
+        token.role = adminUser?.role ?? "admin"
         token.kakaoId = undefined
-        token.sub = user?.id ?? token.sub
+        token.sub = adminUser?.id ?? user?.id ?? token.sub
         return token
       }
 
