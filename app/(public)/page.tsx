@@ -35,7 +35,7 @@ export default function HomePage() {
         <div className="max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
           {[
             { step: "01", title: "카카오 로그인", desc: "간단한 신청서 작성 후 승인 대기" },
-            { step: "02", title: "추천인 코드 수령", desc: "승인 후 나만의 코드와 QR 발급" },
+            { step: "02", title: "추천인 코드 수령", desc: "승인 후 나만의 코드 발급" },
             { step: "03", title: "실적 & 정산 확인", desc: "대시보드에서 실시간으로 확인" },
           ].map((item) => (
             <div key={item.step} className="flex flex-col items-center gap-2">

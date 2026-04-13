@@ -107,24 +107,6 @@ export default async function PartnerDashboard() {
         </Card>
       </div>
 
-      {/* QR Code */}
-      {profile?.referral_code && (
-        <Card>
-          <CardContent className="py-5 flex flex-col items-center gap-3">
-            <p className="text-sm font-medium text-[#191917]">내 QR 코드</p>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/api/partner/qr"
-              alt="파트너 QR 코드"
-              width={160}
-              height={160}
-              className="rounded-[10px]"
-            />
-            <p className="text-xs text-[#8A867D]">가맹점주에게 QR을 보여주세요</p>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Recent leads */}
       <div>
         <div className="flex items-center justify-between mb-3">

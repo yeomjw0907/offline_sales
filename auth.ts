@@ -1,5 +1,6 @@
 import NextAuth from "next-auth"
 import Kakao from "next-auth/providers/kakao"
+import Credentials from "next-auth/providers/credentials"
 import { createClient } from "@/lib/db/client"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -11,9 +12,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientId: process.env.KAKAO_CLIENT_ID!,
       clientSecret: process.env.KAKAO_CLIENT_SECRET!,
     }),
+    Credentials({
+      id: "admin-credentials",
+      name: "Admin Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      authorize(credentials) {
+        const email = String(credentials?.email ?? "").trim().toLowerCase()
+        const password = String(credentials?.password ?? "")
+        const adminEmail = String(process.env.ADMIN_LOGIN_EMAIL ?? "")
+          .trim()
+          .toLowerCase()
+        const adminPassword = String(process.env.ADMIN_LOGIN_PASSWORD ?? "")
+
+        if (!adminEmail || !adminPassword) return null
+        if (email !== adminEmail || password !== adminPassword) return null
+
+        return {
+          id: "admin-local",
+          name: "관리자",
+          email: adminEmail,
+          role: "admin",
+        }
+      },
+    }),
   ],
   callbacks: {
     async signIn({ account, profile }) {
+      if (account?.provider === "admin-credentials") return true
       if (account?.provider !== "kakao") return false
 
       const supabase = createClient("service")
@@ -40,7 +68,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true
     },
 
-    async jwt({ token, account, profile }) {
+    async jwt({ token, account, profile, user }) {
+      if (account?.provider === "admin-credentials") {
+        token.role = "admin"
+        token.kakaoId = undefined
+        token.sub = user?.id ?? token.sub
+        return token
+      }
+
       if (account?.provider === "kakao") {
         token.kakaoId = String(
           (profile as { id?: unknown })?.id ?? account.providerAccountId
@@ -50,6 +85,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     async session({ session, token }) {
+      if (!token.kakaoId) {
+        if (token.sub) session.user.id = token.sub
+        session.user.role = (token.role as "admin" | "super_admin" | "partner") ?? "partner"
+        return session
+      }
+
       if (token.kakaoId) {
         const supabase = createClient("service")
         const { data: dbUser } = await supabase

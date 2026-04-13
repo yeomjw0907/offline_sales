@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { createClient } from "@/lib/db/client"
+import { generateUniqueReferralCode } from "@/lib/referral-code"
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -32,15 +33,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "이미 신청 내역이 있습니다." }, { status: 409 })
   }
 
+  const referralCode = await generateUniqueReferralCode()
+  const now = new Date().toISOString()
+
   const { data, error } = await supabase
     .from("partner_profiles")
     .insert({
       user_id: session.user.id,
-      status: "pending",
+      status: "active",
+      referral_code: referralCode,
+      approved_at: now,
       activity_region,
       acquisition_channel,
       activity_type,
       intro: intro || null,
+      updated_at: now,
     })
     .select()
     .single()

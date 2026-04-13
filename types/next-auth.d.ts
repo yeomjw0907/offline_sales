@@ -6,7 +6,7 @@ declare module "next-auth" {
     user: {
       id: string
       role: UserRole
-      kakaoId: string
+      kakaoId?: string
     } & DefaultSession["user"]
   }
 }
@@ -14,5 +14,6 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     kakaoId?: string
+    role?: UserRole
   }
 }
