@@ -26,10 +26,16 @@ export async function DELETE(
     return NextResponse.json({ error: "Partner not found" }, { status: 404 })
   }
 
-  const { error: deleteErr } = await supabase
+  const { data: updated, error: deleteErr } = await supabase
     .from("partner_profiles")
-    .delete()
+    .update({
+      status: "inactive",
+      deactivated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", id)
+    .select()
+    .single()
 
   if (deleteErr) {
     return NextResponse.json({ error: deleteErr.message }, { status: 500 })
@@ -37,12 +43,12 @@ export async function DELETE(
 
   await logAdminAction({
     adminUserId: session.user.id,
-    actionType: "delete_partner_account",
+    actionType: "deactivate_partner",
     targetType: "partner_profile",
     targetId: id,
-    beforeData: partner as Record<string, unknown>,
-    afterData: { deleted: true },
+    beforeData: { status: partner.status },
+    afterData: { status: "inactive" },
   })
 
-  return NextResponse.json({ success: true }, { status: 200 })
+  return NextResponse.json(updated, { status: 200 })
 }

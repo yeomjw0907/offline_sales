@@ -14,6 +14,7 @@ export default async function PartnersPage({ searchParams }: Props) {
   await requireAdmin()
   const { q, status, page } = await searchParams
   const supabase = createClient("service")
+  const selectedStatus = status ?? "active"
 
   const pageNum = Math.max(1, parseInt(page ?? "1"))
   const pageSize = 20
@@ -26,8 +27,8 @@ export default async function PartnersPage({ searchParams }: Props) {
     .order("created_at", { ascending: false })
     .range(from, to)
 
-  if (status && status !== "all") {
-    query = query.eq("status", status as PartnerStatus)
+  if (selectedStatus !== "all") {
+    query = query.eq("status", selectedStatus as PartnerStatus)
   }
   if (q) {
     query = query.or(`referral_code.ilike.%${q}%`)
@@ -63,7 +64,7 @@ export default async function PartnersPage({ searchParams }: Props) {
             key={s.value}
             href={`/admin/partners?status=${s.value}${q ? `&q=${q}` : ""}`}
             className={`px-3 py-1.5 rounded-[8px] text-sm border transition-colors ${
-              (status ?? "all") === s.value
+              selectedStatus === s.value
                 ? "bg-[#191917] text-white border-[#191917]"
                 : "bg-white text-[#5F5B53] border-[#E9E7E1] hover:bg-[#F7F7F5]"
             }`}
@@ -78,7 +79,7 @@ export default async function PartnersPage({ searchParams }: Props) {
             placeholder="추천인 코드 검색"
             className="h-9 px-3 rounded-[8px] border border-[#E9E7E1] text-sm focus:outline-none focus:ring-2 focus:ring-[#8A867D]/40"
           />
-          {status && <input type="hidden" name="status" value={status} />}
+          {selectedStatus && <input type="hidden" name="status" value={selectedStatus} />}
           <Button type="submit" size="sm" variant="outline">검색</Button>
         </form>
       </div>
@@ -129,7 +130,7 @@ export default async function PartnersPage({ searchParams }: Props) {
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                 <Link
                   key={p}
-                  href={`/admin/partners?page=${p}${status ? `&status=${status}` : ""}${q ? `&q=${q}` : ""}`}
+                  href={`/admin/partners?page=${p}${selectedStatus ? `&status=${selectedStatus}` : ""}${q ? `&q=${q}` : ""}`}
                   className={`w-8 h-8 flex items-center justify-center rounded-[6px] text-sm ${
                     p === pageNum ? "bg-[#191917] text-white" : "border border-[#E9E7E1] hover:bg-[#F7F7F5]"
                   }`}

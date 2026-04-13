@@ -47,8 +47,13 @@ export default function PartnerDetailPage() {
   const handleDelete = async () => {
     if (!confirm("정말 계정을 삭제할까요? 삭제 후에도 재가입은 가능합니다.")) return
     setActing(true)
-    await fetch(`/api/partners/${partnerId}/delete`, { method: "DELETE" })
+    const res = await fetch(`/api/partners/${partnerId}/delete`, { method: "DELETE" })
     setActing(false)
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error ?? "계정 삭제에 실패했습니다.")
+      return
+    }
     window.location.href = "/admin/partners"
   }
 

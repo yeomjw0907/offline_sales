@@ -13,7 +13,7 @@ function getAdminCredentialEntries() {
       const separator = entry.indexOf(":")
       if (separator <= 0) return null
       const email = entry.slice(0, separator).trim().toLowerCase()
-      const password = entry.slice(separator + 1)
+      const password = entry.slice(separator + 1).trim()
       if (!email || !password) return null
       return { email, password }
     })
@@ -24,7 +24,7 @@ function getAdminCredentialEntries() {
   const singleEmail = String(process.env.ADMIN_LOGIN_EMAIL ?? "")
     .trim()
     .toLowerCase()
-  const singlePassword = String(process.env.ADMIN_LOGIN_PASSWORD ?? "")
+  const singlePassword = String(process.env.ADMIN_LOGIN_PASSWORD ?? "").trim()
   if (!singleEmail || !singlePassword) return []
   return [{ email: singleEmail, password: singlePassword }]
 }
@@ -47,7 +47,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         const email = String(credentials?.email ?? "").trim().toLowerCase()
-        const password = String(credentials?.password ?? "")
+        const password = String(credentials?.password ?? "").trim()
         const adminEntries = getAdminCredentialEntries()
         const matchedAdmin = adminEntries.find((admin) => admin.email === email)
 
@@ -55,11 +55,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (password !== matchedAdmin.password) return null
 
         const supabase = createClient("service")
-        const { data: dbUser, error } = await supabase
+        let { data: dbUser, error } = await supabase
           .from("users")
           .select("id, role, name, email")
           .eq("email", matchedAdmin.email)
           .maybeSingle()
+
+        // Some existing rows may keep mixed-case emails.
+        if (!dbUser && !error) {
+          const fallback = await supabase
+            .from("users")
+            .select("id, role, name, email")
+            .ilike("email", matchedAdmin.email)
+            .maybeSingle()
+          dbUser = fallback.data
+          error = fallback.error
+        }
 
         if (error || !dbUser) {
           console.error("[auth] admin login: user not found for email", matchedAdmin.email)

@@ -20,7 +20,7 @@ export default async function PerformancePage({ searchParams }: Props) {
 
   let query = supabase
     .from("merchant_leads")
-    .select("*, partner_profiles(referral_code, users(name))", { count: "exact" })
+    .select("*", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(from, from + pageSize - 1)
 
@@ -28,6 +28,32 @@ export default async function PerformancePage({ searchParams }: Props) {
   if (code) query = query.eq("referral_code", code.toUpperCase())
 
   const { data: leads, count } = await query
+  const partnerProfileIds = Array.from(
+    new Set((leads ?? []).map((lead) => lead.partner_profile_id).filter((id): id is string => Boolean(id)))
+  )
+
+  let partnerByProfileId = new Map<string, { name: string | null }>()
+  if (partnerProfileIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("partner_profiles")
+      .select("id, user_id")
+      .in("id", partnerProfileIds)
+
+    const userIds = Array.from(
+      new Set((profiles ?? []).map((profile) => profile.user_id).filter((id): id is string => Boolean(id)))
+    )
+
+    const { data: users } =
+      userIds.length > 0
+        ? await supabase.from("users").select("id, name").in("id", userIds)
+        : { data: [] as { id: string; name: string | null }[] }
+
+    const userNameById = new Map((users ?? []).map((user) => [user.id, user.name]))
+    partnerByProfileId = new Map(
+      (profiles ?? []).map((profile) => [profile.id, { name: userNameById.get(profile.user_id) ?? null }])
+    )
+  }
+
   const totalPages = Math.ceil((count ?? 0) / pageSize)
 
   return (
@@ -72,15 +98,14 @@ export default async function PerformancePage({ searchParams }: Props) {
               </thead>
               <tbody className="divide-y divide-[#E9E7E1]">
                 {leads?.map((lead) => {
-                  const profile = Array.isArray(lead.partner_profiles) ? lead.partner_profiles[0] : lead.partner_profiles
-                  const user = profile && (Array.isArray((profile as { users?: unknown }).users) ? (profile as { users: { name?: string }[] }).users[0] : (profile as { users?: { name?: string } }).users)
+                  const partner = lead.partner_profile_id ? partnerByProfileId.get(lead.partner_profile_id) : null
                   return (
                     <tr key={lead.id} className="hover:bg-[#F7F7F5]">
                       <td className="px-4 py-3 font-medium text-[#191917]">{lead.store_name}</td>
                       <td className="px-4 py-3 text-[#5F5B53]">{lead.contact_phone}</td>
                       <td className="px-4 py-3 text-[#5F5B53]">{lead.region}</td>
                       <td className="px-4 py-3 font-mono text-[#191917]">{lead.referral_code}</td>
-                      <td className="px-4 py-3 text-[#5F5B53]">{(user as { name?: string } | null | undefined)?.name ?? "-"}</td>
+                      <td className="px-4 py-3 text-[#5F5B53]">{partner?.name ?? "-"}</td>
                       <td className="px-4 py-3 text-[#5F5B53]">{lead.pilot_started_at}</td>
                       <td className="px-4 py-3"><LeadStatusBadge status={lead.status} /></td>
                       <td className="px-4 py-3 text-right">
