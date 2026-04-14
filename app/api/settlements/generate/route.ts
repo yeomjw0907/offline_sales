@@ -3,6 +3,9 @@ import { auth } from "@/auth"
 import { createClient } from "@/lib/db/client"
 import { calculateSettlement } from "@/lib/settlements/calculate"
 import { logAdminAction } from "@/lib/db/log"
+import { createRequestTraceId, tracedJson } from "@/lib/db/request-trace"
+import { validateSettlementMonth } from "@/lib/validation/partner"
+import { ERROR_MESSAGES } from "@/lib/ui/error-messages"
 
 function isUuid(value: string | null | undefined) {
   if (!value) return false
@@ -10,10 +13,11 @@ function isUuid(value: string | null | undefined) {
 }
 
 export async function POST(req: NextRequest) {
+  const requestId = createRequestTraceId()
   const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!session) return tracedJson(requestId, { code: "unauthorized", error: ERROR_MESSAGES.unauthorized }, { status: 401 })
   if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    return tracedJson(requestId, { code: "forbidden", error: ERROR_MESSAGES.forbidden }, { status: 403 })
   }
 
   const contentType = req.headers.get("content-type") ?? ""
@@ -37,8 +41,8 @@ export async function POST(req: NextRequest) {
     partnerProfileId = pid ? String(pid) : undefined
   }
 
-  if (!month || !/^\d{4}-\d{2}$/.test(month)) {
-    return NextResponse.json({ error: "Invalid month format. Use YYYY-MM" }, { status: 400 })
+  if (!month || !validateSettlementMonth(month)) {
+    return tracedJson(requestId, { code: "invalidInput", error: "Invalid month format. Use YYYY-MM" }, { status: 400 })
   }
 
   const supabase = createClient("service")
@@ -70,7 +74,7 @@ export async function POST(req: NextRequest) {
 
   const { data: partners, error: partnersErr } = await partnersQuery
   if (partnersErr) {
-    return NextResponse.json({ error: partnersErr.message }, { status: 500 })
+    return tracedJson(requestId, { code: "unknown", error: partnersErr.message }, { status: 500 })
   }
 
   let created = 0
@@ -140,12 +144,12 @@ export async function POST(req: NextRequest) {
         actionType: "generate_settlement",
         targetType: "settlement",
         targetId: settlement.id,
-        afterData: { partner_profile_id: partner.id, month, total_cases: calc.totalCases },
+        afterData: { partner_profile_id: partner.id, month, total_cases: calc.totalCases, requestId },
       })
     }
 
     created++
   }
 
-  return NextResponse.json({ created }, { status: 200 })
+  return tracedJson(requestId, { created }, { status: 200 })
 }

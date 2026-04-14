@@ -7,6 +7,7 @@ export async function logAdminAction(params: {
   targetId: string
   beforeData?: Record<string, unknown>
   afterData?: Record<string, unknown>
+  requestId?: string
 }) {
   const supabase = createClient("service")
   const row = {
@@ -19,6 +20,9 @@ export async function logAdminAction(params: {
   }
   const { error } = await supabase.from("admin_activity_logs").insert(row)
   if (error) {
-    console.error("[logAdminAction] failed:", error.message)
+    console.error(
+      `[logAdminAction] requestId=${params.requestId ?? "n/a"} actionType=${params.actionType} targetType=${params.targetType} targetId=${params.targetId} failed:`,
+      error.message
+    )
   }
 }

@@ -5,7 +5,8 @@ import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PartnerStatusBadge, LeadStatusBadge, SettlementStatusBadge } from "@/components/shared/StatusBadge"
 import { formatKRW } from "@/lib/settlements/calculate"
-import { Button } from "@/components/ui/button"
+import { LoadingButton } from "@/components/ui/LoadingButton"
+import { InlineStatus } from "@/components/ui/InlineStatus"
 
 interface PartnerDetail {
   id: string; status: string; referral_code: string | null
@@ -22,6 +23,8 @@ export default function PartnerDetailPage() {
   const [data, setData] = useState<PartnerDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState(false)
+  const [actionLabel, setActionLabel] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -34,27 +37,48 @@ export default function PartnerDetailPage() {
   useEffect(() => { load() }, [partnerId])
 
   const handleSuspend = async (days: 1 | 3 | 7 | 30) => {
+    setActionError(null)
     setActing(true)
-    await fetch(`/api/partners/${partnerId}/suspend`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ days }),
-    })
-    load()
-    setActing(false)
+    setActionLabel(`${days}일 정지 처리 중...`)
+    try {
+      const res = await fetch(`/api/partners/${partnerId}/suspend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ days }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setActionError(data.error ?? "파트너 정지 처리에 실패했습니다.")
+        return
+      }
+      load()
+    } catch {
+      setActionError("네트워크 오류로 정지 처리에 실패했습니다.")
+    } finally {
+      setActing(false)
+      setActionLabel(null)
+    }
   }
 
   const handleDelete = async () => {
     if (!confirm("정말 계정을 삭제할까요? 삭제 후에도 재가입은 가능합니다.")) return
+    setActionError(null)
     setActing(true)
-    const res = await fetch(`/api/partners/${partnerId}/delete`, { method: "DELETE" })
-    setActing(false)
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      alert(data.error ?? "계정 삭제에 실패했습니다.")
-      return
+    setActionLabel("계정 삭제 처리 중...")
+    try {
+      const res = await fetch(`/api/partners/${partnerId}/delete`, { method: "DELETE" })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setActionError(data.error ?? "계정 삭제에 실패했습니다.")
+        return
+      }
+      window.location.href = "/admin/partners"
+    } catch {
+      setActionError("네트워크 오류로 계정 삭제에 실패했습니다.")
+    } finally {
+      setActing(false)
+      setActionLabel(null)
     }
-    window.location.href = "/admin/partners"
   }
 
   if (loading) return <div className="text-sm text-[#8A867D]">불러오는 중...</div>
@@ -68,18 +92,30 @@ export default function PartnerDetailPage() {
         <h1 className="text-2xl font-semibold text-[#191917]">{user?.name ?? "파트너"} 상세</h1>
         <div className="flex gap-2 flex-wrap">
           {[1, 3, 7, 30].map((days) => (
-            <Button
+            <LoadingButton
               key={days}
               onClick={() => handleSuspend(days as 1 | 3 | 7 | 30)}
               disabled={acting}
+              loading={acting && actionLabel?.includes(`${days}일 정지`) === true}
+              loadingText="처리 중..."
               variant="outline"
             >
-              {days}일 정지
-            </Button>
+              {`${days}일 정지`}
+            </LoadingButton>
           ))}
-          <Button onClick={handleDelete} disabled={acting} variant="danger">계정 삭제</Button>
+          <LoadingButton
+            onClick={handleDelete}
+            disabled={acting}
+            loading={acting && actionLabel?.includes("계정 삭제") === true}
+            loadingText="삭제 중..."
+            variant="danger"
+          >
+            계정 삭제
+          </LoadingButton>
         </div>
       </div>
+      {acting && actionLabel && <InlineStatus message={actionLabel} tone="neutral" className="text-sm" />}
+      {actionError && <InlineStatus message={actionError} tone="error" className="text-sm" />}
 
       <Card>
         <CardHeader><CardTitle>프로필 정보</CardTitle></CardHeader>

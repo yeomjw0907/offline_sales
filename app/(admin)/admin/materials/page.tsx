@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { LoadingButton } from "@/components/ui/LoadingButton"
+import { InlineStatus } from "@/components/ui/InlineStatus"
 
 interface Material {
   id: string; title: string; type: "link" | "file" | "note"
@@ -23,6 +25,7 @@ export default function MaterialsPage() {
   const [file, setFile] = useState<File | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [pendingAction, setPendingAction] = useState<{ id: string; type: "toggle" | "delete" } | null>(null)
 
   const load = () => {
     fetch("/api/materials").then(r => r.json()).then(d => setMaterials(d.data ?? []))
@@ -31,18 +34,28 @@ export default function MaterialsPage() {
   useEffect(() => { load() }, [])
 
   const handleToggle = async (id: string, is_published: boolean) => {
-    await fetch(`/api/materials/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_published: !is_published }),
-    })
-    load()
+    setPendingAction({ id, type: "toggle" })
+    try {
+      await fetch(`/api/materials/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_published: !is_published }),
+      })
+      load()
+    } finally {
+      setPendingAction(null)
+    }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm("삭제하시겠습니까?")) return
-    await fetch(`/api/materials/${id}`, { method: "DELETE" })
-    load()
+    setPendingAction({ id, type: "delete" })
+    try {
+      await fetch(`/api/materials/${id}`, { method: "DELETE" })
+      load()
+    } finally {
+      setPendingAction(null)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,9 +124,7 @@ export default function MaterialsPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
               {formError && (
-                <div className="bg-red-50 border border-red-200 rounded-[8px] p-3 text-sm text-[#C94C4C]">
-                  {formError}
-                </div>
+                <InlineStatus message={formError} tone="error" className="text-sm" />
               )}
               <div className="space-y-1.5">
                 <Label>제목 *</Label>
@@ -155,7 +166,7 @@ export default function MaterialsPage() {
                 <Label>정렬 순서</Label>
                 <Input type="number" value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
               </div>
-              <Button type="submit" disabled={saving}>{saving ? "저장 중..." : "저장"}</Button>
+              <LoadingButton type="submit" loading={saving} loadingText="저장 중...">저장</LoadingButton>
             </form>
           </CardContent>
         </Card>
@@ -179,13 +190,27 @@ export default function MaterialsPage() {
                   <td className="px-4 py-3 text-[#5F5B53] max-w-[200px] truncate">{m.description ?? "-"}</td>
                   <td className="px-4 py-3 text-[#8A867D]">{m.sort_order}</td>
                   <td className="px-4 py-3">
-                    <button onClick={() => handleToggle(m.id, m.is_published)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${m.is_published ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-600"}`}>
+                    <LoadingButton
+                      onClick={() => handleToggle(m.id, m.is_published)}
+                      loading={pendingAction?.id === m.id && pendingAction.type === "toggle"}
+                      loadingText="처리 중..."
+                      size="sm"
+                      className={m.is_published ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100" : "bg-gray-100 text-gray-600 hover:bg-gray-100"}
+                    >
                       {m.is_published ? "공개" : "비공개"}
-                    </button>
+                    </LoadingButton>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button size="sm" variant="ghost" onClick={() => handleDelete(m.id)} className="text-[#C94C4C] hover:text-[#C94C4C]">삭제</Button>
+                    <LoadingButton
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDelete(m.id)}
+                      loading={pendingAction?.id === m.id && pendingAction.type === "delete"}
+                      loadingText="삭제 중..."
+                      className="text-[#C94C4C] hover:text-[#C94C4C]"
+                    >
+                      삭제
+                    </LoadingButton>
                   </td>
                 </tr>
               ))}

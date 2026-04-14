@@ -1,11 +1,28 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
+import { LoadingButton } from "@/components/ui/LoadingButton"
+import { InlineStatus } from "@/components/ui/InlineStatus"
 
 export default function LoginPage() {
   const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleKakaoLogin() {
+    if (isLoading) return
+    setError(null)
+    setIsLoading(true)
+    try {
+      await signIn("kakao", { callbackUrl: "/partner" })
+    } catch {
+      setError("로그인 중 오류가 발생했습니다. 다시 시도해 주세요.")
+      setIsLoading(false)
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#F7F7F5] flex items-center justify-center px-4">
@@ -30,15 +47,23 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => signIn("kakao", { callbackUrl: "/partner" })}
-          className="w-full flex items-center justify-center gap-3 bg-[#FEE500] hover:bg-[#F5D900] text-[#191917] font-medium py-3 px-4 rounded-[10px] transition-colors"
+        <LoadingButton
+          onClick={handleKakaoLogin}
+          loading={isLoading}
+          loadingText="로그인 중..."
+          className="w-full bg-[#FEE500] hover:bg-[#F5D900] text-[#191917] disabled:opacity-70"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 3C6.477 3 2 6.477 2 11c0 2.943 1.646 5.533 4.157 7.11L5.1 21.5l4.08-2.69C9.7 18.93 10.84 19 12 19c5.523 0 10-3.477 10-8S17.523 3 12 3z" />
           </svg>
           카카오로 로그인
-        </button>
+        </LoadingButton>
+        {isLoading && (
+          <InlineStatus message="카카오 인증 화면으로 이동 중입니다..." tone="neutral" className="w-full text-center" />
+        )}
+        {error && (
+          <InlineStatus message={error} tone="error" className="w-full text-center" />
+        )}
 
         <p className="text-xs text-[#8A867D] text-center leading-relaxed">
           로그인하면{" "}

@@ -1,18 +1,25 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { createClient } from "@/lib/db/client"
+import { createRequestTraceId, logTraceError, tracedJson } from "@/lib/db/request-trace"
+import { validatePayoutAccountInput } from "@/lib/validation/partner"
+import { ERROR_MESSAGES } from "@/lib/ui/error-messages"
 
 export async function POST(req: NextRequest) {
+  const requestId = createRequestTraceId()
   const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!session) return tracedJson(requestId, { code: "unauthorized", error: ERROR_MESSAGES.unauthorized }, { status: 401 })
 
-  const body = await req.json()
-  const { bank_name, account_holder_name } = body
-  const account_number = String(body.account_number ?? "").replace(/\D/g, "")
-
-  if (!bank_name || !account_number || !account_holder_name) {
-    return NextResponse.json({ error: "필수 항목을 모두 입력해주세요." }, { status: 400 })
+  const body = await req.json().catch(() => null)
+  const validated = validatePayoutAccountInput(body)
+  if (!validated.ok) {
+    return tracedJson(
+      requestId,
+      { code: "invalidInput", error: ERROR_MESSAGES.invalidInput, field: validated.field },
+      { status: 400 }
+    )
   }
+  const { bank_name, account_holder_name, account_number } = validated.value
 
   const supabase = createClient("service")
 
@@ -22,7 +29,7 @@ export async function POST(req: NextRequest) {
     .eq("user_id", session.user.id)
     .single()
 
-  if (!profile) return NextResponse.json({ error: "파트너 프로필이 없습니다." }, { status: 404 })
+  if (!profile) return tracedJson(requestId, { code: "notFound", error: "파트너 프로필이 없습니다." }, { status: 404 })
 
   // Deactivate existing account
   await supabase
@@ -46,7 +53,10 @@ export async function POST(req: NextRequest) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    logTraceError(requestId, "partners.payout-account", error)
+    return tracedJson(requestId, { code: "saveFailed", error: error.message }, { status: 500 })
+  }
 
-  return NextResponse.json(data, { status: 201 })
+  return tracedJson(requestId, { data }, { status: 201 })
 }

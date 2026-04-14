@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { LoadingButton } from "@/components/ui/LoadingButton"
+import { InlineStatus } from "@/components/ui/InlineStatus"
+import { validatePerformanceInput } from "@/lib/validation/performance"
+import { getErrorMessage } from "@/lib/ui/error-messages"
 
 interface PartnerOption {
   id: string
@@ -26,22 +30,31 @@ export default function NewPerformancePage() {
   const [error, setError] = useState<string | null>(null)
   const [partners, setPartners] = useState<PartnerOption[]>([])
   const [selectedPartnerId, setSelectedPartnerId] = useState("")
+  const [partnersLoading, setPartnersLoading] = useState(true)
+  const [codeChecking, setCodeChecking] = useState(false)
 
   useEffect(() => {
+    setPartnersLoading(true)
     fetch("/api/partners/lookup?list=1")
       .then((res) => (res.ok ? res.json() : { data: [] }))
       .then((data) => setPartners(Array.isArray(data.data) ? data.data : []))
       .catch(() => setPartners([]))
+      .finally(() => setPartnersLoading(false))
   }, [])
 
   const handleCodeBlur = async () => {
     if (!form.referral_code) return
-    const res = await fetch(`/api/partners/lookup?code=${form.referral_code.toUpperCase()}`)
-    if (res.ok) {
-      const data = await res.json()
-      setPartnerName(data.name ?? "이름 없음")
-    } else {
-      setPartnerName(null)
+    setCodeChecking(true)
+    try {
+      const res = await fetch(`/api/partners/lookup?code=${form.referral_code.toUpperCase()}`)
+      if (res.ok) {
+        const data = await res.json()
+        setPartnerName(data.name ?? "이름 없음")
+      } else {
+        setPartnerName(null)
+      }
+    } finally {
+      setCodeChecking(false)
     }
   }
 
@@ -51,10 +64,17 @@ export default function NewPerformancePage() {
     setError(null)
     setDuplicate(false)
 
+    const validated = validatePerformanceInput(form)
+    if (!validated.ok) {
+      setError(getErrorMessage("invalidInput"))
+      setSubmitting(false)
+      return
+    }
+
     const res = await fetch("/api/performance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, referral_code: form.referral_code.toUpperCase() }),
+      body: JSON.stringify(validated.value),
     })
 
     if (res.status === 409) {
@@ -64,7 +84,7 @@ export default function NewPerformancePage() {
     }
     if (!res.ok) {
       const data = await res.json()
-      setError(data.error ?? "오류가 발생했습니다.")
+      setError(data.error ?? getErrorMessage(data.code))
       setSubmitting(false)
       return
     }
@@ -91,7 +111,7 @@ export default function NewPerformancePage() {
               </div>
             )}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-[8px] p-3 text-sm text-[#C94C4C]">{error}</div>
+              <InlineStatus message={error} tone="error" className="text-sm" />
             )}
 
             <div className="space-y-1.5">
@@ -111,6 +131,7 @@ export default function NewPerformancePage() {
               <select
                 id="partner_select"
                 value={selectedPartnerId}
+                disabled={partnersLoading}
                 onChange={(e) => {
                   const id = e.target.value
                   setSelectedPartnerId(id)
@@ -122,13 +143,16 @@ export default function NewPerformancePage() {
                 }}
                 className="h-10 w-full rounded-[10px] border border-[#DCD9D1] bg-[#FCFCFB] px-3 py-2 text-sm text-[#191917] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#191917] focus:ring-offset-2 focus:border-[#191917]"
               >
-                <option value="">파트너를 선택해 자동 입력</option>
+                <option value="">{partnersLoading ? "파트너 목록 불러오는 중..." : "파트너를 선택해 자동 입력"}</option>
                 {partners.map((p) => (
                   <option key={p.id} value={p.id}>
                     {(p.name ?? "이름 없음")} ({p.referral_code})
                   </option>
                 ))}
               </select>
+              {partnersLoading && (
+                <InlineStatus message="파트너 목록을 불러오는 중입니다..." tone="neutral" />
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="referral_code">추천인 코드 *</Label>
@@ -143,6 +167,9 @@ export default function NewPerformancePage() {
               {partnerName && (
                 <p className="text-sm text-[#2F7D4A]">파트너: {partnerName}</p>
               )}
+              {codeChecking && (
+                <InlineStatus message="추천인 코드를 확인하는 중입니다..." tone="neutral" />
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="pilot_started_at">파일럿 시작일 *</Label>
@@ -150,9 +177,7 @@ export default function NewPerformancePage() {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button type="submit" disabled={submitting}>
-                {submitting ? "저장 중..." : "저장"}
-              </Button>
+              <LoadingButton type="submit" loading={submitting} loadingText="저장 중...">저장</LoadingButton>
               <Button type="button" variant="outline" onClick={() => router.back()}>취소</Button>
             </div>
           </form>

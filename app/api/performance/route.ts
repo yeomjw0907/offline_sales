@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { createClient } from "@/lib/db/client"
 import { logAdminAction } from "@/lib/db/log"
+import { createRequestTraceId, logTraceError, tracedJson } from "@/lib/db/request-trace"
+import { validatePerformanceInput } from "@/lib/validation/performance"
+import { ERROR_MESSAGES } from "@/lib/ui/error-messages"
 
 export async function GET(req: NextRequest) {
+  const requestId = createRequestTraceId()
   const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!session) return tracedJson(requestId, { code: "unauthorized", error: ERROR_MESSAGES.unauthorized }, { status: 401 })
   if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    return tracedJson(requestId, { code: "forbidden", error: ERROR_MESSAGES.forbidden }, { status: 403 })
   }
 
   const { searchParams } = new URL(req.url)
@@ -33,25 +37,31 @@ export async function GET(req: NextRequest) {
   const { data, error, count } = await query
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    logTraceError(requestId, "performance.get", error)
+    return tracedJson(requestId, { code: "unknown", error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ data, count, page, pageSize }, { status: 200 })
+  return tracedJson(requestId, { data, count, page, pageSize }, { status: 200 })
 }
 
 export async function POST(req: NextRequest) {
+  const requestId = createRequestTraceId()
   const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!session) return tracedJson(requestId, { code: "unauthorized", error: ERROR_MESSAGES.unauthorized }, { status: 401 })
   if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    return tracedJson(requestId, { code: "forbidden", error: ERROR_MESSAGES.forbidden }, { status: 403 })
   }
 
-  const body = await req.json()
-  const { store_name, contact_phone, region, referral_code, pilot_started_at } = body
-
-  if (!store_name || !contact_phone || !region || !referral_code || !pilot_started_at) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+  const body = await req.json().catch(() => null)
+  const validated = validatePerformanceInput(body)
+  if (!validated.ok) {
+    return tracedJson(
+      requestId,
+      { code: "invalidInput", error: ERROR_MESSAGES.invalidInput, field: validated.field },
+      { status: 400 }
+    )
   }
+  const { store_name, contact_phone, region, referral_code, pilot_started_at } = validated.value
 
   const supabase = createClient("service")
 
@@ -64,8 +74,9 @@ export async function POST(req: NextRequest) {
     .maybeSingle()
 
   if (existing) {
-    return NextResponse.json(
-      { error: "Duplicate entry", existing },
+    return tracedJson(
+      requestId,
+      { code: "duplicate", error: ERROR_MESSAGES.duplicate, existing },
       { status: 409 }
     )
   }
@@ -93,7 +104,8 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (insertErr) {
-    return NextResponse.json({ error: insertErr.message }, { status: 500 })
+    logTraceError(requestId, "performance.create", insertErr)
+    return tracedJson(requestId, { code: "saveFailed", error: insertErr.message }, { status: 500 })
   }
 
   await logAdminAction({
@@ -101,8 +113,8 @@ export async function POST(req: NextRequest) {
     actionType: "create_merchant_lead",
     targetType: "merchant_lead",
     targetId: created.id,
-    afterData: { store_name, contact_phone, region, referral_code, pilot_started_at },
+    afterData: { store_name, contact_phone, region, referral_code, pilot_started_at, requestId },
   })
 
-  return NextResponse.json(created, { status: 201 })
+  return tracedJson(requestId, { data: created }, { status: 201 })
 }
