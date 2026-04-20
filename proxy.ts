@@ -12,6 +12,8 @@ export const proxy = auth((req) => {
     pathname === "/privacy" ||
     pathname === "/terms" ||
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/integrations/readytalk") ||
+    pathname.startsWith("/api/webhooks/readytalk") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon")
 
