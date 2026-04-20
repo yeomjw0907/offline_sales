@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import { auth } from "@/auth"
 import { createClient } from "@/lib/db/client"
 import { createRequestTraceId, logTraceError, tracedJson } from "@/lib/db/request-trace"

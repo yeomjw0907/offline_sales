@@ -42,6 +42,54 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_id: string
+          event_type: string
+          failed_at: string | null
+          id: string
+          linked_merchant_lead_id: string | null
+          merchant_external_id: string | null
+          payload: Json
+          processed_at: string | null
+          provider: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_id: string
+          event_type: string
+          failed_at?: string | null
+          id?: string
+          linked_merchant_lead_id?: string | null
+          merchant_external_id?: string | null
+          payload: Json
+          processed_at?: string | null
+          provider: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_id?: string
+          event_type?: string
+          failed_at?: string | null
+          id?: string
+          linked_merchant_lead_id?: string | null
+          merchant_external_id?: string | null
+          payload?: Json
+          processed_at?: string | null
+          provider?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       merchant_leads: {
         Row: {
           contact_phone: string
@@ -340,6 +388,7 @@ export type User = Tables<"users">
 export type PartnerProfile = Tables<"partner_profiles">
 export type PartnerPayoutAccount = Tables<"partner_payout_accounts">
 export type PartnerMaterial = Tables<"partner_materials">
+export type IntegrationEvent = Tables<"integration_events">
 export type MerchantLead = Tables<"merchant_leads">
 export type Settlement = Tables<"settlements">
 export type SettlementItem = Tables<"settlement_items">

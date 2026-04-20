@@ -3,7 +3,7 @@ import { auth } from "@/auth"
 import { createClient } from "@/lib/db/client"
 import { logAdminAction } from "@/lib/db/log"
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   if (session.user.role !== "admin" && session.user.role !== "super_admin") {

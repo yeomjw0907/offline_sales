@@ -18,6 +18,11 @@ interface PartnerDetail {
   settlements: Array<{ id: string; settlement_month: string; total_cases: number; net_amount: number; status: string }>
 }
 
+async function fetchPartnerDetail(partnerId: string) {
+  const response = await fetch(`/api/partners/${partnerId}/detail`)
+  return response.json() as Promise<PartnerDetail>
+}
+
 export default function PartnerDetailPage() {
   const { partnerId } = useParams<{ partnerId: string }>()
   const [data, setData] = useState<PartnerDetail | null>(null)
@@ -26,15 +31,32 @@ export default function PartnerDetailPage() {
   const [actionLabel, setActionLabel] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const load = () => {
-    setLoading(true)
-    fetch(`/api/partners/${partnerId}/detail`)
-      .then(r => r.json())
-      .then(setData)
-      .finally(() => setLoading(false))
-  }
+  useEffect(() => {
+    let cancelled = false
 
-  useEffect(() => { load() }, [partnerId])
+    setLoading(true)
+    fetchPartnerDetail(partnerId)
+      .then((nextData) => {
+        if (!cancelled) setData(nextData)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [partnerId])
+
+  const reload = async () => {
+    setLoading(true)
+    try {
+      const nextData = await fetchPartnerDetail(partnerId)
+      setData(nextData)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSuspend = async (days: 1 | 3 | 7 | 30) => {
     setActionError(null)
@@ -51,7 +73,7 @@ export default function PartnerDetailPage() {
         setActionError(data.error ?? "파트너 정지 처리에 실패했습니다.")
         return
       }
-      load()
+      await reload()
     } catch {
       setActionError("네트워크 오류로 정지 처리에 실패했습니다.")
     } finally {

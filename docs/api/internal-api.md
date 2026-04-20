@@ -122,3 +122,15 @@ Updates a material record.
 - material publish/update
 
 All of these should create admin activity log records.
+
+## 8. External Integration Endpoints
+
+These endpoints are for machine-to-machine integration and do not use session auth.
+
+### `POST /api/integrations/readytalk/referral-codes/verify`
+
+Validates a referral code for the ReadyTalk system using the shared API key.
+
+### `POST /api/webhooks/readytalk/pilot-started`
+
+Accepts a ReadyTalk pilot-start event, validates the referral code, and writes into `merchant_leads`.

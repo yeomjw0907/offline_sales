@@ -1,5 +1,4 @@
 import { requireAdmin } from "@/lib/auth/session"
-import { auth } from "@/auth"
 import Link from "next/link"
 import { signOut } from "@/auth"
 

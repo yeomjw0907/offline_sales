@@ -41,7 +41,6 @@
 
 - foreign key from `merchant_leads.partner_profile_id` to `partner_profiles.id`
 - soft duplicate warning through application logic
-- if future external integration is added, unique index on external merchant ID
 
 ## 6. Settlements
 
@@ -63,3 +62,11 @@
 - index on `admin_activity_logs.target_type`
 - index on `admin_activity_logs.target_id`
 - index on `admin_activity_logs.created_at`
+
+## 9. Integration Events
+
+- `integration_events.id` primary key
+- unique constraint on `(provider, event_type, event_id)`
+- index on `(provider, status)`
+- index on `merchant_external_id`
+- optional foreign key from `integration_events.linked_merchant_lead_id` to `merchant_leads.id`
