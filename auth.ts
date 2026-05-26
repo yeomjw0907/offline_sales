@@ -100,20 +100,47 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (profile as { id?: unknown })?.id ?? account.providerAccountId
       )
 
-      const { error } = await supabase.from("users").upsert(
-        {
-          kakao_id: kakaoId,
-          name: (profile as { nickname?: string })?.nickname ?? null,
-          email: (profile as { kakao_account?: { email?: string } })
-            ?.kakao_account?.email ?? null,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "kakao_id" }
-      )
+      const kakaoNickname = (profile as { nickname?: string })?.nickname ?? null
+      const kakaoEmail =
+        (profile as { kakao_account?: { email?: string } })?.kakao_account
+          ?.email ?? null
 
-      if (error) {
-        console.error("[auth] upsert user failed:", error.message)
-        return false
+      const { data: existing } = await supabase
+        .from("users")
+        .select("id, name, email")
+        .eq("kakao_id", kakaoId)
+        .maybeSingle()
+
+      if (existing) {
+        // Preserve user-edited name/email; only fill from Kakao when our DB is empty
+        const updates: {
+          updated_at: string
+          name?: string
+          email?: string
+        } = { updated_at: new Date().toISOString() }
+        if (!existing.name && kakaoNickname) updates.name = kakaoNickname
+        if (!existing.email && kakaoEmail) updates.email = kakaoEmail
+
+        const { error } = await supabase
+          .from("users")
+          .update(updates)
+          .eq("id", existing.id)
+
+        if (error) {
+          console.error("[auth] update user failed:", error.message)
+          return false
+        }
+      } else {
+        const { error } = await supabase.from("users").insert({
+          kakao_id: kakaoId,
+          name: kakaoNickname,
+          email: kakaoEmail,
+        })
+
+        if (error) {
+          console.error("[auth] insert user failed:", error.message)
+          return false
+        }
       }
 
       return true

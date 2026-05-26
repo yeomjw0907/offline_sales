@@ -18,6 +18,12 @@ interface PartnerOption {
   email: string | null
 }
 
+function displayPartner(p: { name: string | null; email: string | null }): string {
+  if (p.name && p.name.trim()) return p.name
+  if (p.email) return p.email.split("@")[0]
+  return "이름 없음"
+}
+
 export default function NewPerformancePage() {
   const router = useRouter()
   const [form, setForm] = useState({
@@ -49,7 +55,7 @@ export default function NewPerformancePage() {
       const res = await fetch(`/api/partners/lookup?code=${form.referral_code.toUpperCase()}`)
       if (res.ok) {
         const data = await res.json()
-        setPartnerName(data.name ?? "이름 없음")
+        setPartnerName(displayPartner(data))
       } else {
         setPartnerName(null)
       }
@@ -138,7 +144,7 @@ export default function NewPerformancePage() {
                   const selected = partners.find((p) => p.id === id)
                   if (selected?.referral_code) {
                     setForm((f) => ({ ...f, referral_code: selected.referral_code }))
-                    setPartnerName(selected.name ?? "이름 없음")
+                    setPartnerName(displayPartner(selected))
                   }
                 }}
                 className="h-10 w-full rounded-[10px] border border-[#DCD9D1] bg-[#FCFCFB] px-3 py-2 text-sm text-[#191917] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#191917] focus:ring-offset-2 focus:border-[#191917]"
@@ -146,7 +152,7 @@ export default function NewPerformancePage() {
                 <option value="">{partnersLoading ? "파트너 목록 불러오는 중..." : "파트너를 선택해 자동 입력"}</option>
                 {partners.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {(p.name ?? "이름 없음")} ({p.referral_code})
+                    {displayPartner(p)} ({p.referral_code})
                   </option>
                 ))}
               </select>
