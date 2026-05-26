@@ -86,12 +86,26 @@ export default async function ProfilePage() {
       />
 
       {/* Payout account */}
-      <Card>
+      <Card
+        id="payout"
+        className={
+          !payoutAccount
+            ? "scroll-mt-6 border-[#F5C97D] bg-[#FFFCF5]"
+            : "scroll-mt-6"
+        }
+      >
         <CardHeader className="pb-0">
-          <CardTitle className="text-sm">출금 계좌</CardTitle>
+          <CardTitle className="text-sm flex items-center gap-2">
+            출금 계좌
+            {!payoutAccount && (
+              <span className="text-[10px] font-medium text-[#8A5A12] bg-[#FFE8B8] px-1.5 py-0.5 rounded">
+                미등록
+              </span>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
-          {payoutAccount && (
+          {payoutAccount ? (
             <div className="bg-[#F7F7F5] rounded-[10px] p-4 mb-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-[#8A867D]">은행</span>
@@ -110,6 +124,10 @@ export default async function ProfilePage() {
                 </span>
               </div>
             </div>
+          ) : (
+            <p className="text-xs text-[#5F5B53] bg-[#FFF8EC] border border-[#F5E0B5] rounded-[10px] px-3 py-2.5 mb-4 leading-relaxed">
+              정산금을 받으려면 본인 명의 계좌가 필요합니다. 입력하신 계좌번호는 암호화되어 저장됩니다.
+            </p>
           )}
           <PayoutAccountForm hasExisting={!!payoutAccount} />
         </CardContent>

@@ -28,6 +28,15 @@ export default async function PartnerDashboard() {
         .order("settlement_month", { ascending: false }),
     ])
 
+  const { data: payoutAccount } = profile
+    ? await supabase
+        .from("partner_payout_accounts")
+        .select("id")
+        .eq("partner_profile_id", profile.id)
+        .eq("is_active", true)
+        .maybeSingle()
+    : { data: null }
+
   // filter leads by this partner's referral code
   const partnerLeads = (leads ?? []).filter(
     (l) => l.referral_code === profile?.referral_code
@@ -57,6 +66,26 @@ export default async function PartnerDashboard() {
         </h1>
         <p className="text-sm text-[#8A867D] mt-0.5">오늘도 좋은 하루 되세요.</p>
       </div>
+
+      {!payoutAccount && profile && (
+        <Link
+          href="/partner/profile#payout"
+          className="flex items-start gap-3 rounded-[12px] border border-[#F5C97D] bg-[#FFF8EC] px-4 py-3 shadow-card hover:bg-[#FFF3DE] transition-colors"
+        >
+          <span className="text-xl leading-none mt-0.5" aria-hidden="true">💸</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-[#191917]">
+              출금 계좌를 등록해 주세요
+            </p>
+            <p className="text-xs text-[#5F5B53] mt-0.5">
+              정산금을 받으려면 본인 명의 계좌가 필요합니다. 1분이면 등록 완료.
+            </p>
+          </div>
+          <span className="text-sm font-medium text-[#191917] shrink-0 self-center">
+            등록 →
+          </span>
+        </Link>
+      )}
 
       {/* Stats 2x2 grid */}
       <div className="grid grid-cols-2 gap-3">
@@ -166,6 +195,36 @@ export default async function PartnerDashboard() {
           <span className="text-2xl">💰</span>
           <span className="text-sm font-medium text-[#191917]">정산 내역</span>
         </Link>
+      </div>
+
+      {/* External links */}
+      <div className="space-y-2">
+        <a
+          href="https://ready.talk"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 bg-white rounded-[12px] border border-[#E9E7E1] shadow-card px-4 py-3.5 hover:bg-[#F7F7F5] transition-colors"
+        >
+          <span className="text-xl" aria-hidden="true">🔗</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-[#191917]">레디톡 바로가기</p>
+            <p className="text-xs text-[#8A867D] mt-0.5">레디톡 서비스로 이동합니다</p>
+          </div>
+          <span className="text-[#8A867D] text-sm shrink-0" aria-hidden="true">↗</span>
+        </a>
+        <a
+          href="https://ready.talk/guides"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 bg-white rounded-[12px] border border-[#E9E7E1] shadow-card px-4 py-3.5 hover:bg-[#F7F7F5] transition-colors"
+        >
+          <span className="text-xl" aria-hidden="true">📘</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-[#191917]">레디톡 가이드</p>
+            <p className="text-xs text-[#8A867D] mt-0.5">사용 방법과 활용 팁을 확인하세요</p>
+          </div>
+          <span className="text-[#8A867D] text-sm shrink-0" aria-hidden="true">↗</span>
+        </a>
       </div>
     </div>
   )
