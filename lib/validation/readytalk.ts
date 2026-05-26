@@ -78,3 +78,67 @@ export function validateReadyTalkPilotStartedInput(
 
   return { ok: true, value }
 }
+
+export const READYTALK_LIFECYCLE_EVENT_TYPES = [
+  "signup_completed",
+  "trial_requested",
+  "channel_linked",
+  "activated",
+] as const
+
+export type ReadyTalkLifecycleEventType = (typeof READYTALK_LIFECYCLE_EVENT_TYPES)[number]
+
+export interface ReadyTalkLifecycleInput {
+  eventType: ReadyTalkLifecycleEventType
+  eventId: string
+  merchantExternalId: string
+  referralCode: string
+  storeName: string
+  contactPhone: string
+  region: string
+  occurredAt: string
+  channel?: ReadyTalkChannel
+}
+
+export function validateReadyTalkLifecycleInput(
+  raw: unknown
+): { ok: true; value: ReadyTalkLifecycleInput } | { ok: false; field?: string } {
+  if (!raw || typeof raw !== "object") return { ok: false }
+
+  const body = raw as Record<string, unknown>
+  const eventType = String(body.eventType ?? "").trim() as ReadyTalkLifecycleEventType
+  if (!(READYTALK_LIFECYCLE_EVENT_TYPES as readonly string[]).includes(eventType)) {
+    return { ok: false, field: "eventType" }
+  }
+
+  const channel = normalizeChannel(body.channel)
+  if (eventType === "channel_linked" && !channel) {
+    return { ok: false, field: "channel" }
+  }
+
+  const value: ReadyTalkLifecycleInput = {
+    eventType,
+    eventId: String(body.eventId ?? "").trim(),
+    merchantExternalId: String(body.merchantExternalId ?? "").trim(),
+    referralCode: String(body.referralCode ?? "").trim().toUpperCase(),
+    storeName: String(body.storeName ?? "").trim(),
+    contactPhone: String(body.contactPhone ?? "").trim(),
+    region: String(body.region ?? "").trim(),
+    occurredAt: String(body.occurredAt ?? "").trim(),
+    channel,
+  }
+
+  if (!value.eventId) return { ok: false, field: "eventId" }
+  if (!value.merchantExternalId) return { ok: false, field: "merchantExternalId" }
+  if (!value.referralCode || !/^[A-Z0-9]{4,12}$/.test(value.referralCode)) {
+    return { ok: false, field: "referralCode" }
+  }
+  if (!value.storeName) return { ok: false, field: "storeName" }
+  if (!value.contactPhone) return { ok: false, field: "contactPhone" }
+  if (!value.region) return { ok: false, field: "region" }
+  if (!value.occurredAt || !/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(value.occurredAt)) {
+    return { ok: false, field: "occurredAt" }
+  }
+
+  return { ok: true, value }
+}

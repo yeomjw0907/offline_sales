@@ -92,14 +92,16 @@ export type Database = {
       }
       merchant_leads: {
         Row: {
+          activated_at: string | null
           channel_linked_at: string | null
           contact_phone: string
           created_at: string
           created_by: string
           id: string
           linked_channels: string[]
+          merchant_external_id: string | null
           partner_profile_id: string | null
-          pilot_started_at: string
+          pilot_started_at: string | null
           referral_code: string
           region: string
           signup_at: string | null
@@ -110,14 +112,16 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          activated_at?: string | null
           channel_linked_at?: string | null
           contact_phone: string
           created_at?: string
           created_by: string
           id?: string
           linked_channels?: string[]
+          merchant_external_id?: string | null
           partner_profile_id?: string | null
-          pilot_started_at: string
+          pilot_started_at?: string | null
           referral_code: string
           region: string
           signup_at?: string | null
@@ -128,14 +132,16 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          activated_at?: string | null
           channel_linked_at?: string | null
           contact_phone?: string
           created_at?: string
           created_by?: string
           id?: string
           linked_channels?: string[]
+          merchant_external_id?: string | null
           partner_profile_id?: string | null
-          pilot_started_at?: string
+          pilot_started_at?: string | null
           referral_code?: string
           region?: string
           signup_at?: string | null

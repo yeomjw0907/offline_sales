@@ -164,11 +164,12 @@ export default async function PartnerDashboard() {
                       {lead.store_name}
                     </p>
                     <p className="text-xs text-[#8A867D] mt-0.5">
-                      {lead.region} ·{" "}
-                      {new Date(lead.pilot_started_at).toLocaleDateString("ko-KR", {
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {lead.region}
+                      {lead.pilot_started_at &&
+                        ` · ${new Date(lead.pilot_started_at).toLocaleDateString("ko-KR", {
+                          month: "short",
+                          day: "numeric",
+                        })}`}
                     </p>
                   </div>
                   <LeadStatusBadge status={lead.status} />
