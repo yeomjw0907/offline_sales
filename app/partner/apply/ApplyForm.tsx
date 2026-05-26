@@ -1,11 +1,71 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+
+type ConsentKey = "required" | "marketing"
+
+const CONSENT_TEXTS: Record<ConsentKey, { title: string; sections: { heading: string; items: string[] }[]; footer?: string }> = {
+  required: {
+    title: "개인정보 수집 및 이용 동의 (필수)",
+    sections: [
+      {
+        heading: "수집 항목",
+        items: [
+          "이름, 전화번호, 이메일",
+          "카카오 계정 식별자",
+          "활동 지역, 활동 유형, 유입 경로",
+          "자기소개(선택 입력 시)",
+        ],
+      },
+      {
+        heading: "수집·이용 목적",
+        items: [
+          "파트너 신청 접수 및 신원 확인",
+          "추천인 코드 발급 및 실적 귀속 판단",
+          "수수료 정산 및 세무 처리 대응",
+          "공지사항·운영 안내 전달, 민원 처리",
+        ],
+      },
+      {
+        heading: "보유 및 이용 기간",
+        items: [
+          "회원 탈퇴 또는 처리 목적 달성 시까지",
+          "관계 법령에 따라 보관이 필요한 경우 해당 법정 기간까지 (계약·결제·소비자 분쟁 등)",
+        ],
+      },
+    ],
+    footer:
+      "본 동의를 거부할 권리가 있으나, 거부 시 파트너 신청이 제한될 수 있습니다. 자세한 사항은 개인정보처리방침을 참고해 주세요.",
+  },
+  marketing: {
+    title: "마케팅 정보 수신 동의 (선택)",
+    sections: [
+      {
+        heading: "수신 내용",
+        items: [
+          "신규 프로모션, 이벤트, 캠페인 안내",
+          "서비스 업데이트 및 신규 기능 소개",
+          "파트너 활동에 도움이 되는 영업 자료·팁",
+        ],
+      },
+      {
+        heading: "수신 방법",
+        items: ["이메일, SMS, 카카오 알림톡, 앱 푸시 등"],
+      },
+      {
+        heading: "보유 및 이용 기간",
+        items: ["동의 철회 시 또는 회원 탈퇴 시까지"],
+      },
+    ],
+    footer:
+      "본 동의는 선택 사항이며, 동의하지 않아도 파트너 활동에는 제한이 없습니다. 동의 후에도 언제든지 철회하실 수 있습니다.",
+  },
+}
 
 const ACQUISITION_CHANNELS = [
   { value: "SNS", label: "SNS" },
@@ -116,6 +176,7 @@ export default function ApplyForm() {
   const [error, setError] = useState<string | null>(null)
   const [selectedSido, setSelectedSido] = useState("")
   const [selectedSigungu, setSelectedSigungu] = useState("")
+  const [openConsent, setOpenConsent] = useState<ConsentKey | null>(null)
 
   const [form, setForm] = useState({
     name: "",
@@ -128,6 +189,20 @@ export default function ApplyForm() {
   })
 
   const [consent, setConsent] = useState({ required: false, marketing: false })
+
+  useEffect(() => {
+    if (!openConsent) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenConsent(null)
+    }
+    document.addEventListener("keydown", onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.removeEventListener("keydown", onKey)
+      document.body.style.overflow = prev
+    }
+  }, [openConsent])
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -364,35 +439,60 @@ export default function ApplyForm() {
 
       {/* Consent */}
       <div className="space-y-3 border-t border-[#E9E7E1] pt-4">
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={consent.required}
-            onChange={(e) =>
-              setConsent((prev) => ({ ...prev, required: e.target.checked }))
-            }
-            className="mt-0.5 h-4 w-4 rounded border-[#E9E7E1] accent-[#191917]"
-          />
-          <span className="text-sm text-[#191917]">
-            <span className="font-medium">[필수]</span> 개인정보 수집 및 이용에
-            동의합니다.
-          </span>
-        </label>
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={consent.marketing}
-            onChange={(e) =>
-              setConsent((prev) => ({ ...prev, marketing: e.target.checked }))
-            }
-            className="mt-0.5 h-4 w-4 rounded border-[#E9E7E1] accent-[#191917]"
-          />
-          <span className="text-sm text-[#5F5B53]">
-            <span className="font-medium">[선택]</span> 마케팅 정보 수신에
-            동의합니다.
-          </span>
-        </label>
+        <div className="flex items-start justify-between gap-3">
+          <label className="flex items-start gap-3 cursor-pointer flex-1">
+            <input
+              type="checkbox"
+              checked={consent.required}
+              onChange={(e) =>
+                setConsent((prev) => ({ ...prev, required: e.target.checked }))
+              }
+              className="mt-0.5 h-4 w-4 rounded border-[#E9E7E1] accent-[#191917]"
+            />
+            <span className="text-sm text-[#191917]">
+              <span className="font-medium">[필수]</span> 개인정보 수집 및 이용에
+              동의합니다.
+            </span>
+          </label>
+          <button
+            type="button"
+            onClick={() => setOpenConsent("required")}
+            className="shrink-0 text-xs text-[#5F5B53] underline underline-offset-2 hover:text-[#191917]"
+          >
+            전문 보기
+          </button>
+        </div>
+        <div className="flex items-start justify-between gap-3">
+          <label className="flex items-start gap-3 cursor-pointer flex-1">
+            <input
+              type="checkbox"
+              checked={consent.marketing}
+              onChange={(e) =>
+                setConsent((prev) => ({ ...prev, marketing: e.target.checked }))
+              }
+              className="mt-0.5 h-4 w-4 rounded border-[#E9E7E1] accent-[#191917]"
+            />
+            <span className="text-sm text-[#5F5B53]">
+              <span className="font-medium">[선택]</span> 마케팅 정보 수신에
+              동의합니다.
+            </span>
+          </label>
+          <button
+            type="button"
+            onClick={() => setOpenConsent("marketing")}
+            className="shrink-0 text-xs text-[#5F5B53] underline underline-offset-2 hover:text-[#191917]"
+          >
+            전문 보기
+          </button>
+        </div>
       </div>
+
+      {openConsent && (
+        <ConsentModal
+          consent={CONSENT_TEXTS[openConsent]}
+          onClose={() => setOpenConsent(null)}
+        />
+      )}
 
       {error && (
         <p className="text-sm text-red-600 bg-red-50 rounded-[10px] px-4 py-3">
@@ -408,5 +508,75 @@ export default function ApplyForm() {
         {submitting ? "신청 중..." : "파트너 신청하기"}
       </Button>
     </form>
+  )
+}
+
+function ConsentModal({
+  consent,
+  onClose,
+}: {
+  consent: (typeof CONSENT_TEXTS)[ConsentKey]
+  onClose: () => void
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="consent-modal-title"
+      onClick={onClose}
+    >
+      <div
+        className="flex w-full max-w-lg max-h-[80vh] flex-col rounded-[12px] border border-[#E9E7E1] bg-white shadow-card"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-[#E9E7E1] px-5 py-4">
+          <h3
+            id="consent-modal-title"
+            className="text-base font-semibold text-[#191917]"
+          >
+            {consent.title}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="닫기"
+            className="text-[#8A867D] hover:text-[#191917]"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="overflow-y-auto px-5 py-4 text-sm leading-relaxed text-[#5F5B53]">
+          <div className="space-y-4">
+            {consent.sections.map((section) => (
+              <section key={section.heading}>
+                <h4 className="mb-1 text-sm font-semibold text-[#191917]">
+                  {section.heading}
+                </h4>
+                <ul className="list-disc space-y-1 pl-5">
+                  {section.items.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+            {consent.footer && (
+              <p className="border-t border-[#E9E7E1] pt-3 text-xs text-[#8A867D]">
+                {consent.footer}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="flex justify-end border-t border-[#E9E7E1] px-5 py-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-[8px] bg-[#191917] px-4 py-2 text-sm text-white hover:bg-[#3A3835]"
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
