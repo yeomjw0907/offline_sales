@@ -97,6 +97,7 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          linked_channels: string[]
           partner_profile_id: string | null
           pilot_started_at: string
           referral_code: string
@@ -114,6 +115,7 @@ export type Database = {
           created_at?: string
           created_by: string
           id?: string
+          linked_channels?: string[]
           partner_profile_id?: string | null
           pilot_started_at: string
           referral_code: string
@@ -131,6 +133,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          linked_channels?: string[]
           partner_profile_id?: string | null
           pilot_started_at?: string
           referral_code?: string

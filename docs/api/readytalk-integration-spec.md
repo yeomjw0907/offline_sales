@@ -92,9 +92,12 @@
   "contactPhone": "010-2222-3333",
   "region": "Seoul Seongdong-gu",
   "referralCode": "RTM4K82",
-  "pilotStartedAt": "2026-04-20T14:00:00+09:00"
+  "pilotStartedAt": "2026-04-20T14:00:00+09:00",
+  "linkedChannel": "kakao_talk"
 }
 ```
+
+`linkedChannel`은 선택 필드입니다. 값으로 다음 중 하나를 허용합니다: `kakao_talk`, `instagram_dm`, `naver_talktalk`, `website_widget`. 누락 시 빈 값으로 저장되며 기존 동작은 그대로 유지됩니다.
 
 ### 성공 응답
 
@@ -181,14 +184,28 @@
 |-----------|------|--------------|
 | `signup_completed` | ReadyTalk 회원가입 완료 (코드 입력 포함) | `merchant_leads.signup_at` 갱신 (없으면 생성) |
 | `trial_requested` | 체험/파일럿 신청 의사 표시 | `merchant_leads.trial_requested_at` 갱신 |
-| `channel_linked` | 카카오 채널 연동 완료 | `merchant_leads.channel_linked_at` 갱신, status `pending_verification` (관리자 승인 게이트) |
+| `channel_linked` | 채널(카카오톡/인스타/네이버톡톡/웹위젯) 연동 완료 | `merchant_leads.channel_linked_at` 갱신 + `linked_channels`에 채널 append, status `pending_verification` (관리자 승인 게이트) |
 | `activated` *(선택)* | 실제 AI 자동 응답 첫 작동 확인 | 운영 지표용, 정산에는 영향 없음 |
+
+### 채널 필드 (`channel_linked` 이벤트 전용)
+
+```json
+{
+  "eventType": "channel_linked",
+  "channel": "kakao_talk",
+  "eventId": "...",
+  "merchantExternalId": "...",
+  ...
+}
+```
+
+허용 값: `kakao_talk`, `instagram_dm`, `naver_talktalk`, `website_widget`. 한 매장이 여러 채널을 연동하면 `channel_linked` 이벤트가 여러 번 들어와도 됩니다. 우리는 동일 `merchantExternalId`의 lead에 채널을 누적합니다.
 
 ### 운영 규칙 (제안)
 
 - 동일 `merchantExternalId` 기준으로 lead가 점진적으로 업데이트됩니다.
 - 이벤트는 순서 무관: 우리는 각 컬럼의 timestamp만 채웁니다.
-- 정산 인정 시점은 `channel_linked` (현재 단일 `pilot-started`와 동일).
+- 정산 인정 시점은 `channel_linked` (현재 단일 `pilot-started`와 동일). 어떤 채널이든 1건 이상 연동되면 인정.
 - 멱등성 기준은 `(eventType, eventId)`.
 
 ### 호환성

@@ -10,6 +10,24 @@ export interface ReadyTalkPilotStartedInput {
   storeName: string
   contactPhone: string
   region: string
+  linkedChannel?: ReadyTalkChannel
+}
+
+export const READYTALK_CHANNELS = [
+  "kakao_talk",
+  "instagram_dm",
+  "naver_talktalk",
+  "website_widget",
+] as const
+
+export type ReadyTalkChannel = (typeof READYTALK_CHANNELS)[number]
+
+function normalizeChannel(raw: unknown): ReadyTalkChannel | undefined {
+  if (raw === undefined || raw === null || raw === "") return undefined
+  const value = String(raw).trim().toLowerCase().replace(/[-\s]/g, "_")
+  return (READYTALK_CHANNELS as readonly string[]).includes(value)
+    ? (value as ReadyTalkChannel)
+    : undefined
 }
 
 export function validateReadyTalkReferralCodeVerifyInput(
@@ -35,7 +53,7 @@ export function validateReadyTalkPilotStartedInput(
   if (!raw || typeof raw !== "object") return { ok: false }
 
   const body = raw as Record<string, unknown>
-  const value = {
+  const value: ReadyTalkPilotStartedInput = {
     eventId: String(body.eventId ?? "").trim(),
     merchantExternalId: String(body.merchantExternalId ?? "").trim(),
     referralCode: String(body.referralCode ?? "").trim().toUpperCase(),
@@ -43,6 +61,7 @@ export function validateReadyTalkPilotStartedInput(
     storeName: String(body.storeName ?? "").trim(),
     contactPhone: String(body.contactPhone ?? "").trim(),
     region: String(body.region ?? "").trim(),
+    linkedChannel: normalizeChannel(body.linkedChannel),
   }
 
   if (!value.eventId) return { ok: false, field: "eventId" }
