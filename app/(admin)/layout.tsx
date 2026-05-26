@@ -1,23 +1,40 @@
 import { requireAdmin } from "@/lib/auth/session"
+import { createClient } from "@/lib/db/client"
 import Link from "next/link"
 import { signOut } from "@/auth"
 
-const navItems = [
+const navItems: { href: string; label: string; pendingKey?: "performance" }[] = [
   { href: "/admin", label: "대시보드" },
   { href: "/admin/partners", label: "파트너 관리" },
-  { href: "/admin/performance", label: "실적 관리" },
+  { href: "/admin/performance", label: "실적 관리", pendingKey: "performance" },
   { href: "/admin/settlements", label: "정산 관리" },
   { href: "/admin/materials", label: "영업자료" },
 ]
 
-const superAdminItems = [
+const superAdminItems: { href: string; label: string; pendingKey?: "performance" }[] = [
   { href: "/admin/team", label: "팀 관리" },
   { href: "/admin/logs", label: "로그" },
 ]
 
+function PendingBadge({ count }: { count: number }) {
+  if (count <= 0) return null
+  return (
+    <span className="ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#C94B4B] px-1.5 text-[10px] font-semibold text-white">
+      {count > 99 ? "99+" : count}
+    </span>
+  )
+}
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAdmin()
   const isSuperAdmin = session.user.role === "super_admin"
+
+  const supabase = createClient("service")
+  const { count: pendingPerformanceCount } = await supabase
+    .from("merchant_leads")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending_verification")
+  const pendingCounts = { performance: pendingPerformanceCount ?? 0 }
 
   return (
     <div className="min-h-screen bg-[#F7F7F5] flex">
@@ -33,9 +50,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center px-3 py-2 text-sm text-[#5F5B53] rounded-[8px] hover:bg-[#F7F7F5] hover:text-[#191917] transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-[#5F5B53] rounded-[8px] hover:bg-[#F7F7F5] hover:text-[#191917] transition-colors"
             >
-              {item.label}
+              <span>{item.label}</span>
+              {item.pendingKey && <PendingBadge count={pendingCounts[item.pendingKey]} />}
             </Link>
           ))}
 
@@ -76,11 +94,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <details className="relative">
           <summary className="cursor-pointer text-sm text-[#5F5B53] list-none px-2 py-1 rounded hover:bg-[#F7F7F5]">메뉴</summary>
           <div className="absolute right-0 top-full mt-1 bg-white border border-[#E9E7E1] rounded-[10px] shadow-modal min-w-[160px] py-1 z-20">
-            {[...navItems, ...(isSuperAdmin ? superAdminItems : [])].map((item) => (
-              <Link key={item.href} href={item.href} className="block px-4 py-2 text-sm text-[#5F5B53] hover:bg-[#F7F7F5]">
-                {item.label}
-              </Link>
-            ))}
+            {[...navItems, ...(isSuperAdmin ? superAdminItems : [])].map((item) => {
+              const pendingKey = "pendingKey" in item ? item.pendingKey : undefined
+              return (
+                <Link key={item.href} href={item.href} className="flex items-center gap-2 px-4 py-2 text-sm text-[#5F5B53] hover:bg-[#F7F7F5]">
+                  <span>{item.label}</span>
+                  {pendingKey && <PendingBadge count={pendingCounts[pendingKey]} />}
+                </Link>
+              )
+            })}
           </div>
         </details>
       </div>
