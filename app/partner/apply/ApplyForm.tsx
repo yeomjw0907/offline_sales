@@ -71,6 +71,7 @@ const ACQUISITION_CHANNELS = [
   { value: "SNS", label: "SNS" },
   { value: "지인소개", label: "지인소개" },
   { value: "인터넷검색", label: "인터넷검색" },
+  { value: "채용플랫폼", label: "채용플랫폼 (사람인, 잡코리아 등)" },
   { value: "기타", label: "기타" },
 ]
 
