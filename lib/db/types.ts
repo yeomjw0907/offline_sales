@@ -369,7 +369,11 @@ export type Database = {
     }
     Enums: {
       material_type: "link" | "file" | "note"
-      merchant_lead_status: "pilot_started" | "settlement_ready" | "paid"
+      merchant_lead_status:
+        | "pending_verification"
+        | "pilot_started"
+        | "settlement_ready"
+        | "paid"
       partner_status: "pending" | "active" | "inactive"
       settlement_status: "scheduled" | "paid"
       user_role: "partner" | "admin" | "super_admin"

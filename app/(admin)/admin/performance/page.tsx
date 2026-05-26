@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { LeadStatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import ApproveLeadButton from "./ApproveLeadButton"
 
 interface Props {
   searchParams: Promise<{ status?: string; code?: string; page?: string }>
@@ -24,7 +25,7 @@ export default async function PerformancePage({ searchParams }: Props) {
     .order("created_at", { ascending: false })
     .range(from, from + pageSize - 1)
 
-  if (status) query = query.eq("status", status as "pilot_started" | "settlement_ready" | "paid")
+  if (status) query = query.eq("status", status as "pending_verification" | "pilot_started" | "settlement_ready" | "paid")
   if (code) query = query.eq("referral_code", code.toUpperCase())
 
   const { data: leads, count } = await query
@@ -78,6 +79,7 @@ export default async function PerformancePage({ searchParams }: Props) {
           className="h-9 px-3 rounded-[8px] border border-[#E9E7E1] text-sm bg-white focus:outline-none"
         >
           <option value="">전체 상태</option>
+          <option value="pending_verification">승인 대기</option>
           <option value="pilot_started">파일럿 시작</option>
           <option value="settlement_ready">정산 예정</option>
           <option value="paid">지급 완료</option>
@@ -109,9 +111,13 @@ export default async function PerformancePage({ searchParams }: Props) {
                       <td className="px-4 py-3 text-[#5F5B53]">{lead.pilot_started_at}</td>
                       <td className="px-4 py-3"><LeadStatusBadge status={lead.status} /></td>
                       <td className="px-4 py-3 text-right">
-                        <Button asChild size="sm" variant="ghost">
-                          <Link href={`/admin/performance?edit=${lead.id}`}>수정</Link>
-                        </Button>
+                        {lead.status === "pending_verification" ? (
+                          <ApproveLeadButton leadId={lead.id} />
+                        ) : (
+                          <Button asChild size="sm" variant="ghost">
+                            <Link href={`/admin/performance?edit=${lead.id}`}>수정</Link>
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   )

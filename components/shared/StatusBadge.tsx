@@ -7,7 +7,8 @@ const partnerStatusMap: Record<PartnerStatus, { label: string; variant: "pending
   inactive: { label: "비활성", variant: "inactive" },
 }
 
-const leadStatusMap: Record<MerchantLeadStatus, { label: string; variant: "active" | "scheduled" | "paid" }> = {
+const leadStatusMap: Record<MerchantLeadStatus, { label: string; variant: "pending" | "active" | "scheduled" | "paid" }> = {
+  pending_verification: { label: "승인 대기", variant: "pending" },
   pilot_started: { label: "파일럿 시작", variant: "active" },
   settlement_ready: { label: "정산 예정", variant: "scheduled" },
   paid: { label: "지급 완료", variant: "paid" },

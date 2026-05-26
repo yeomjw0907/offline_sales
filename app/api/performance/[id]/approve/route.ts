@@ -3,8 +3,8 @@ import { auth } from "@/auth"
 import { createClient } from "@/lib/db/client"
 import { logAdminAction } from "@/lib/db/log"
 
-export async function PATCH(
-  req: NextRequest,
+export async function POST(
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth()
@@ -26,28 +26,20 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  const body = await req.json()
-  const typedUpdates: {
-    updated_at: string
-    updated_by: string
-    store_name?: string
-    contact_phone?: string
-    region?: string
-    referral_code?: string
-    pilot_started_at?: string
-    status?: "pending_verification" | "pilot_started" | "settlement_ready" | "paid"
-  } = { updated_at: new Date().toISOString(), updated_by: session.user.id }
-
-  if ("store_name" in body) typedUpdates.store_name = body.store_name
-  if ("contact_phone" in body) typedUpdates.contact_phone = body.contact_phone
-  if ("region" in body) typedUpdates.region = body.region
-  if ("referral_code" in body) typedUpdates.referral_code = body.referral_code
-  if ("pilot_started_at" in body) typedUpdates.pilot_started_at = body.pilot_started_at
-  if ("status" in body) typedUpdates.status = body.status
+  if (existing.status !== "pending_verification") {
+    return NextResponse.json(
+      { error: "Lead is not in pending_verification state.", currentStatus: existing.status },
+      { status: 409 }
+    )
+  }
 
   const { data: updated, error: updateErr } = await supabase
     .from("merchant_leads")
-    .update(typedUpdates)
+    .update({
+      status: "pilot_started",
+      updated_at: new Date().toISOString(),
+      updated_by: session.user.id,
+    })
     .eq("id", id)
     .select()
     .single()
@@ -58,11 +50,11 @@ export async function PATCH(
 
   await logAdminAction({
     adminUserId: session.user.id,
-    actionType: "update_merchant_lead",
+    actionType: "approve_merchant_lead",
     targetType: "merchant_lead",
     targetId: id,
-    beforeData: existing as Record<string, unknown>,
-    afterData: typedUpdates as Record<string, unknown>,
+    beforeData: { status: existing.status },
+    afterData: { status: "pilot_started" },
   })
 
   return NextResponse.json(updated, { status: 200 })

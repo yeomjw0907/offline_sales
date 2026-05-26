@@ -246,7 +246,9 @@ export async function POST(req: NextRequest) {
         pilot_started_at: pilotStartedDate,
         created_by: systemUserIdResult.value,
         updated_by: systemUserIdResult.value,
-        status: "pilot_started",
+        // Webhook leads start as pending_verification — an admin must approve
+        // them before they enter settlement.
+        status: "pending_verification",
       })
       .select()
       .single()
