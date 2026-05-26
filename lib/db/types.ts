@@ -215,6 +215,8 @@ export type Database = {
           deactivated_at: string | null
           id: string
           intro: string | null
+          marketing_consent: boolean
+          marketing_consent_at: string | null
           referral_code: string | null
           status: Database["public"]["Enums"]["partner_status"]
           updated_at: string
@@ -230,6 +232,8 @@ export type Database = {
           deactivated_at?: string | null
           id?: string
           intro?: string | null
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
           referral_code?: string | null
           status?: Database["public"]["Enums"]["partner_status"]
           updated_at?: string
@@ -245,6 +249,8 @@ export type Database = {
           deactivated_at?: string | null
           id?: string
           intro?: string | null
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
           referral_code?: string | null
           status?: Database["public"]["Enums"]["partner_status"]
           updated_at?: string

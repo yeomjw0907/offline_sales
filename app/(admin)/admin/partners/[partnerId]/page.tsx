@@ -13,6 +13,7 @@ interface PartnerDetail {
   activity_region: string | null; acquisition_channel: string | null
   activity_type: string | null; intro: string | null
   approved_at: string | null; created_at: string
+  marketing_consent: boolean; marketing_consent_at: string | null
   users: { name: string | null; email: string | null; phone: string | null } | null
   merchant_leads: Array<{ id: string; store_name: string; region: string; pilot_started_at: string; status: string }>
   settlements: Array<{ id: string; settlement_month: string; total_cases: number; net_amount: number; status: string }>
@@ -153,6 +154,12 @@ export default function PartnerDetailPage() {
               { label: "활동 유형", value: data.activity_type ?? "-" },
               { label: "유입 경로", value: data.acquisition_channel ?? "-" },
               { label: "신청일", value: new Date(data.created_at).toLocaleDateString("ko-KR") },
+              {
+                label: "마케팅 수신 동의",
+                value: data.marketing_consent
+                  ? `동의 (${data.marketing_consent_at ? new Date(data.marketing_consent_at).toLocaleDateString("ko-KR") : "-"})`
+                  : "미동의",
+              },
             ].map(({ label, value }) => (
               <div key={label}>
                 <dt className="text-[#8A867D]">{label}</dt>

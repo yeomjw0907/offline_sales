@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
-  const { name, phone, email, activity_region, acquisition_channel, activity_type, intro } = body
+  const { name, phone, email, activity_region, acquisition_channel, activity_type, intro, marketing_consent } = body
 
   if (!name || !phone || !email || !activity_region || !acquisition_channel || !activity_type) {
     return NextResponse.json({ error: "필수 항목을 모두 입력해주세요." }, { status: 400 })
@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
       acquisition_channel,
       activity_type,
       intro: intro || null,
+      marketing_consent: Boolean(marketing_consent),
+      marketing_consent_at: marketing_consent ? now : null,
       updated_at: now,
     })
     .select()
