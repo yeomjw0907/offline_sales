@@ -92,6 +92,7 @@ export type Database = {
       }
       merchant_leads: {
         Row: {
+          channel_linked_at: string | null
           contact_phone: string
           created_at: string
           created_by: string
@@ -100,12 +101,15 @@ export type Database = {
           pilot_started_at: string
           referral_code: string
           region: string
+          signup_at: string | null
           status: Database["public"]["Enums"]["merchant_lead_status"]
           store_name: string
+          trial_requested_at: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          channel_linked_at?: string | null
           contact_phone: string
           created_at?: string
           created_by: string
@@ -114,12 +118,15 @@ export type Database = {
           pilot_started_at: string
           referral_code: string
           region: string
+          signup_at?: string | null
           status?: Database["public"]["Enums"]["merchant_lead_status"]
           store_name: string
+          trial_requested_at?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          channel_linked_at?: string | null
           contact_phone?: string
           created_at?: string
           created_by?: string
@@ -128,8 +135,10 @@ export type Database = {
           pilot_started_at?: string
           referral_code?: string
           region?: string
+          signup_at?: string | null
           status?: Database["public"]["Enums"]["merchant_lead_status"]
           store_name?: string
+          trial_requested_at?: string | null
           updated_at?: string
           updated_by?: string | null
         }

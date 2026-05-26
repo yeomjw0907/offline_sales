@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/auth/session"
 import { createClient } from "@/lib/db/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { LeadStatusBadge } from "@/components/shared/StatusBadge"
+import { LeadFunnelProgress } from "@/components/shared/LeadFunnelProgress"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import ApproveLeadButton from "./ApproveLeadButton"
@@ -93,7 +94,7 @@ export default async function PerformancePage({ searchParams }: Props) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#E9E7E1] bg-[#F7F7F5]">
-                  {["상호명", "연락처", "지역", "추천인 코드", "파트너", "파일럿 시작일", "상태", ""].map((h) => (
+                  {["상호명", "연락처", "지역", "추천인 코드", "파트너", "진행", "파일럿 시작일", "상태", ""].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#8A867D]">{h}</th>
                   ))}
                 </tr>
@@ -108,6 +109,13 @@ export default async function PerformancePage({ searchParams }: Props) {
                       <td className="px-4 py-3 text-[#5F5B53]">{lead.region}</td>
                       <td className="px-4 py-3 font-mono text-[#191917]">{lead.referral_code}</td>
                       <td className="px-4 py-3 text-[#5F5B53]">{partner?.name ?? "-"}</td>
+                      <td className="px-4 py-3">
+                        <LeadFunnelProgress
+                          signupAt={lead.signup_at}
+                          trialRequestedAt={lead.trial_requested_at}
+                          channelLinkedAt={lead.channel_linked_at}
+                        />
+                      </td>
                       <td className="px-4 py-3 text-[#5F5B53]">{lead.pilot_started_at}</td>
                       <td className="px-4 py-3"><LeadStatusBadge status={lead.status} /></td>
                       <td className="px-4 py-3 text-right">

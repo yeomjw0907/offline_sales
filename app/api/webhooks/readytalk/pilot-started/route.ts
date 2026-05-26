@@ -244,6 +244,11 @@ export async function POST(req: NextRequest) {
         referral_code: partner.referralCode,
         partner_profile_id: partner.partnerProfileId,
         pilot_started_at: pilotStartedDate,
+        // pilot_started in current ReadyTalk contract = kakao channel linked.
+        // Record it on the lifecycle column so the funnel UI lights up the
+        // 카카오 연동 step. Other lifecycle columns (signup_at,
+        // trial_requested_at) stay null until ReadyTalk emits those events.
+        channel_linked_at: payload.pilotStartedAt,
         created_by: systemUserIdResult.value,
         updated_by: systemUserIdResult.value,
         // Webhook leads start as pending_verification — an admin must approve

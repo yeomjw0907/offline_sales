@@ -150,3 +150,48 @@
 - 서버는 `integration_events` 테이블에 webhook 수신 이력을 저장합니다.
 - 멱등성 기준은 `(provider, event_type, event_id)` 입니다.
 - 처리 완료된 이벤트는 내부 `merchant_leads` 와 연결되어 추후 정산 및 운영 확인에 사용됩니다.
+- 현재 webhook으로 생성되는 lead는 `pending_verification` 상태로 들어가며, 관리자가 수동 승인하면 `pilot_started`로 전환되어 월간 정산 대상에 포함됩니다.
+
+## 5. (Draft) 라이프사이클 이벤트 — 다단계 상태 공유 제안
+
+레디톡 측에서 단일 "pilot-started" 이벤트만이 아니라 회원가입·체험신청·채널연동 등 funnel 진행 단계를 별도 이벤트로 송신해 주시면, 우리 쪽에서 더 정확한 운영·정산 처리가 가능해집니다. 아래는 v2 통합 제안 초안입니다.
+
+### Endpoint (제안)
+
+`POST https://offlinesales.vercel.app/api/webhooks/readytalk/lifecycle`
+
+### Request
+
+```json
+{
+  "eventType": "signup_completed",
+  "eventId": "evt_signup_20260601_001",
+  "merchantExternalId": "merchant_12345",
+  "referralCode": "S94ECL",
+  "storeName": "Ready Coffee Seongsu",
+  "contactPhone": "010-2222-3333",
+  "region": "Seoul Seongdong-gu",
+  "occurredAt": "2026-06-01T10:12:34+09:00"
+}
+```
+
+### eventType 후보
+
+| eventType | 의미 | 우리 측 처리 |
+|-----------|------|--------------|
+| `signup_completed` | ReadyTalk 회원가입 완료 (코드 입력 포함) | `merchant_leads.signup_at` 갱신 (없으면 생성) |
+| `trial_requested` | 체험/파일럿 신청 의사 표시 | `merchant_leads.trial_requested_at` 갱신 |
+| `channel_linked` | 카카오 채널 연동 완료 | `merchant_leads.channel_linked_at` 갱신, status `pending_verification` (관리자 승인 게이트) |
+| `activated` *(선택)* | 실제 AI 자동 응답 첫 작동 확인 | 운영 지표용, 정산에는 영향 없음 |
+
+### 운영 규칙 (제안)
+
+- 동일 `merchantExternalId` 기준으로 lead가 점진적으로 업데이트됩니다.
+- 이벤트는 순서 무관: 우리는 각 컬럼의 timestamp만 채웁니다.
+- 정산 인정 시점은 `channel_linked` (현재 단일 `pilot-started`와 동일).
+- 멱등성 기준은 `(eventType, eventId)`.
+
+### 호환성
+
+- 위 v2가 도입되기 전까지 현행 `POST /api/webhooks/readytalk/pilot-started` 는 유지됩니다.
+- 현행 webhook이 들어오면 우리는 `channel_linked_at`을 동시에 채워두므로, 진행 단계 UI가 부분적으로라도 의미 있게 표시됩니다.
