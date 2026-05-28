@@ -28,7 +28,7 @@ export default function MaterialsPage() {
   const [pendingAction, setPendingAction] = useState<{ id: string; type: "toggle" | "delete" } | null>(null)
 
   const load = () => {
-    fetch("/api/materials").then(r => r.json()).then(d => setMaterials(d.data ?? []))
+    fetch("/api/materials").then(r => r.json()).then(d => setMaterials(Array.isArray(d) ? d : []))
   }
 
   useEffect(() => { load() }, [])

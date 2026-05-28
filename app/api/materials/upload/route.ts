@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   if (!hasBucket) {
     const { error: bucketErr } = await supabase.storage.createBucket(DEFAULT_BUCKET, {
       public: true,
-      fileSizeLimit: `${MAX_FILE_SIZE}`,
+      fileSizeLimit: MAX_FILE_SIZE,
     })
     if (bucketErr) {
       return NextResponse.json(
