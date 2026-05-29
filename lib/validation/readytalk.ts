@@ -93,9 +93,9 @@ export interface ReadyTalkLifecycleInput {
   eventId: string
   merchantExternalId: string
   referralCode: string
-  storeName: string
+  storeName: string | undefined
   contactPhone: string
-  region: string
+  region: string | undefined
   occurredAt: string
   channel?: ReadyTalkChannel
 }
@@ -133,9 +133,12 @@ export function validateReadyTalkLifecycleInput(
   if (!value.referralCode || !/^[A-Z0-9]{4,12}$/.test(value.referralCode)) {
     return { ok: false, field: "referralCode" }
   }
-  if (!value.storeName) return { ok: false, field: "storeName" }
+  // signup_completed fires before the store is created — storeName/region are
+  // not yet available and must be tolerated as empty for this event only.
+  const requireStoreFields = eventType !== "signup_completed"
+  if (requireStoreFields && !value.storeName) return { ok: false, field: "storeName" }
   if (!value.contactPhone) return { ok: false, field: "contactPhone" }
-  if (!value.region) return { ok: false, field: "region" }
+  if (requireStoreFields && !value.region) return { ok: false, field: "region" }
   if (!value.occurredAt || !/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(value.occurredAt)) {
     return { ok: false, field: "occurredAt" }
   }

@@ -213,6 +213,15 @@ export async function POST(req: NextRequest) {
         updated_by: systemUserIdResult.value,
       }
 
+      // Backfill store_name / region if they arrived empty on signup_completed
+      // but are now provided by a later lifecycle event.
+      if (payload.storeName && !existingLead.store_name) {
+        updates.store_name = payload.storeName
+      }
+      if (payload.region && !existingLead.region) {
+        updates.region = payload.region
+      }
+
       // channel_linked event also fills pilot_started_at (settlement anchor)
       // and appends to linked_channels array.
       if (payload.eventType === "channel_linked") {
@@ -233,9 +242,9 @@ export async function POST(req: NextRequest) {
       leadId = existingLead.id
     } else {
       const insertRow: TablesInsert<"merchant_leads"> = {
-        store_name: payload.storeName,
+        store_name: payload.storeName ?? null,
         contact_phone: payload.contactPhone,
-        region: payload.region,
+        region: payload.region ?? null,
         referral_code: partner.referralCode,
         partner_profile_id: partner.partnerProfileId,
         merchant_external_id: payload.merchantExternalId,
