@@ -103,10 +103,10 @@ export type Database = {
           partner_profile_id: string | null
           pilot_started_at: string | null
           referral_code: string
-          region: string
+          region: string | null
           signup_at: string | null
           status: Database["public"]["Enums"]["merchant_lead_status"]
-          store_name: string
+          store_name: string | null
           trial_requested_at: string | null
           updated_at: string
           updated_by: string | null
@@ -123,10 +123,10 @@ export type Database = {
           partner_profile_id?: string | null
           pilot_started_at?: string | null
           referral_code: string
-          region: string
+          region?: string | null
           signup_at?: string | null
           status?: Database["public"]["Enums"]["merchant_lead_status"]
-          store_name: string
+          store_name?: string | null
           trial_requested_at?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -143,10 +143,10 @@ export type Database = {
           partner_profile_id?: string | null
           pilot_started_at?: string | null
           referral_code?: string
-          region?: string
+          region?: string | null
           signup_at?: string | null
           status?: Database["public"]["Enums"]["merchant_lead_status"]
-          store_name?: string
+          store_name?: string | null
           trial_requested_at?: string | null
           updated_at?: string
           updated_by?: string | null
